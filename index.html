@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <input type="text" id="quick-search" placeholder="輸入標籤搜尋..." 
+       onchange="window.filterByTag(this.value.replace('#',''))">
     <div class="container">
         <header>
             <h1>記事本</h1>
