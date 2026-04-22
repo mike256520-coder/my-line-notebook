@@ -8,12 +8,15 @@
     <title>My Notebook - 類 LINE 記事本</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-    <input type="text" id="quick-search" placeholder="輸入標籤搜尋..." 
-       onchange="window.filterByTag(this.value.replace('#',''))">
     <div class="container">
         <header>
             <h1>記事本</h1>
+			<div class="search-area">
+        <input type="text" id="search-input" placeholder="輸入標籤搜尋 (例如：美食)...">
+        <button id="search-btn">搜尋</button>
+    </div>
             <div id="active-filter" class="hidden">
                 正在查看標籤: <span id="current-tag"></span>
                 <button onclick="clearFilter()">清除過濾</button>
