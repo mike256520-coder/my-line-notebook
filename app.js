@@ -100,8 +100,8 @@ function loadPosts(filterTag = null) {
 
  // 新增一個函式來抓取網址預覽
 async function getLinkPreview(url) {
-    // 這裡使用 linkpreview.net 作為範例 (需先去官網申請免費 API Key)
-    const apiKey = '你的_API_KEY'; 
+    // 這裡使用 linkpreview.net 作為範例 (需先去官網申請免費 API Key  b8bd272ba6179d524d93939132b959ba)
+    const apiKey = 'b8bd272ba6179d524d93939132b959ba'; 
     const response = await fetch(`https://api.linkpreview.net/?key=${apiKey}&q=${url}`);
     if (response.ok) {
         return await response.json();
