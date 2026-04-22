@@ -7,3 +7,6 @@ https://mike256520-coder.github.io/my-line-notebook/
 這樣才能使用 Firestore 高效的 array-contains 查詢。
 
 即時更新 (Real-time)：使用 onSnapshot 而不是 getDocs。這能讓網站在不重新整理的情況下，當有人發文時自動跳出新內容，與 LINE 的體驗一致。
+
+# ai
+https://gemini.google.com/share/a0ed6f789dd3
