@@ -36,37 +36,35 @@ const postList = document.getElementById('post-list');
 // 在發佈按鈕的事件監聽器(submit-btn)中修改
 // 修改後的發佈邏輯
 //
+// 修改後的發佈邏輯
 document.getElementById('submit-btn').addEventListener('click', async () => {
     const content = document.getElementById('post-input').value;
     if (!content.trim()) return;
 
-    const tagRegex = /#([^\s#]+)/g;
-    const matches = content.match(tagRegex) || [];
-    const tags = matches.map(tag => tag.substring(1).toLowerCase());
-
-    // --- 新增：發佈前先抓網址資訊 ---
+    // 1. 偵測網址
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     const urls = content.match(urlRegex);
     let previewData = null;
 
     if (urls && urls.length > 0) {
-        // 在存入資料庫前，先等 API 回傳
+        // 發佈按鈕變更狀態 (可選：提示使用者正在抓取)
+        console.log("正在抓取標題...");
         previewData = await getLinkPreview(urls[0]);
     }
 
+    // 2. 存入資料庫
     try {
         await addDoc(collection(db, "posts"), {
-            content,
-            tags,
-            linkPreview: previewData, // 這裡存入完整的物件 (包含 title)
+            content: content,
+            tags: content.match(/#([^\s#]+)/g)?.map(t => t.slice(1)) || [],
+            linkPreview: previewData, // 關鍵：把抓到的 title 存進去
             createdAt: serverTimestamp()
         });
         document.getElementById('post-input').value = '';
     } catch (e) {
-        alert("發佈失敗: " + e.message);
+        console.error("發佈失敗", e);
     }
 });
-
 
 
 
