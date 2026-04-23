@@ -71,9 +71,11 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
 
 
 
-
-
-// 2. 監聽與渲染貼文
+//預覽資訊存入 Firestore
+//1.己修改「發佈貼文」邏輯
+//
+// 2. 監聽與渲染貼文:
+//     [待修改]修改「渲染貼文」邏輯:  現在不需要再從瀏覽器呼叫外部 API 了，直接從資料庫讀取欄位。
 let currentUnsubscribe = null;
 
 function loadPosts(filterTag = null) {
@@ -111,7 +113,7 @@ function loadPosts(filterTag = null) {
 //透過一個「後端服務」去訪問該網址，抓取標題
 // 新增一個函式來抓取網址預覽
 async function getLinkPreview(url) {
-    // 這裡使用 linkpreview.net 作為範例 (需先去官網申請免費 API Key)
+    // 這裡使用 linkpreview.net 抓取網址預覽 (需先去官網申請免費 API Key)
     const apiKey = 'b8bd272ba6179d524d93939132b959ba'; 
     const response = await fetch(`https://api.linkpreview.net/?key=${apiKey}&q=${url}`);
     if (response.ok) {
@@ -128,7 +130,7 @@ async function renderPost(data) {
     // 1. 處理文字與標籤
     let htmlContent = data.content.replace(/#([^\s#]+)/g, '<span class="tag-link" onclick="filterByTag(\'$1\')">#$1</span>');
     
-    // 2. 偵測網址 (簡單的網址正則)
+    // 2. 偵測網址 (檢查文中是否有網址正則)
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     const urls = data.content.match(urlRegex);
 
