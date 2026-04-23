@@ -124,42 +124,37 @@ async function getLinkPreview(url) {
     return null;
 }
 
-// 修改原本的 renderPost 函式
+// 修改原本的 renderPost 函式渲染貼文
+
 async function renderPost(data) {
     const card = document.createElement('div');
     card.className = 'post-card';
     
-    // 1. 處理文字與標籤
     let htmlContent = data.content.replace(/#([^\s#]+)/g, '<span class="tag-link" onclick="filterByTag(\'$1\')">#$1</span>');
     
-    // 2. 偵測網址 (檢查文中是否有網址正則)
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
-    const urls = data.content.match(urlRegex);
+    // 檢查是否有預存的預覽資料
+    let previewHtml = '';
+    if (data.linkPreview) {
+        const lp = data.linkPreview;
+        previewHtml = `
+            <a href="${lp.url}" target="_blank" class="link-preview">
+                ${lp.image ? `<img src="${lp.image}" alt="preview">` : ''}
+                <div class="link-info">
+                    <strong>${lp.title || '無標題'}</strong> 
+                    <p>${lp.description || ''}</p>
+                </div>
+            </a>
+        `;
+    }
 
     card.innerHTML = `
         <div class="post-content">${htmlContent}</div>
-        <div class="preview-container" id="preview-${data.id}"></div>
+        ${previewHtml}
         <small style="color:#999">${data.createdAt?.toDate().toLocaleString() || '傳送中...'}</small>
     `;
     postList.appendChild(card);
-
-    // 3. 如果有網址，非同步抓取預覽圖
-    if (urls && urls.length > 0) {
-        const previewData = await getLinkPreview(urls[0]); // 抓第一個網址
-        if (previewData) {
-            const container = document.getElementById(`preview-${data.id}`);
-            container.innerHTML = `
-                <a href="${previewData.url}" target="_blank" class="link-preview">
-                    <img src="${previewData.image}" alt="preview">
-                    <div class="link-info">
-                        <strong>${previewData.title}</strong>
-                        <p>${previewData.description}</p>
-                    </div>
-                </a>
-            `;
-        }
-    }
 }
+
 
 /////以上/////新增一個函式來抓取網址預覽/////////////////////////
 
