@@ -31,27 +31,47 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const postList = document.getElementById('post-list');
 
-// 1. 發佈貼文邏輯
+// 1. 發佈貼文邏輯(old)
+//[修改]在資料寫入 Firestore 之前，先完成網址偵測與預覽資訊的抓取。
+// 在發佈按鈕的事件監聽器中修改
 document.getElementById('submit-btn').addEventListener('click', async () => {
     const content = document.getElementById('post-input').value;
     if (!content.trim()) return;
 
-    // 提取標籤 (Regex: 抓取 # 開頭的非空字元)
+    // A. 提取標籤 (原本的邏輯)
     const tagRegex = /#([^\s#]+)/g;
     const matches = content.match(tagRegex) || [];
-    const tags = matches.map(tag => tag.substring(1)); // 移除 #
+    const tags = matches.map(tag => tag.substring(1).toLowerCase());
+
+    // B. 偵測並抓取網址預覽 (新增的邏輯)
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const urls = content.match(urlRegex);
+    let linkPreviewData = null;
+
+    if (urls && urls.length > 0) {
+        // 抓取第一個網址的預覽
+        linkPreviewData = await getLinkPreview(urls[0]);
+    }
 
     try {
+        // C. 將所有資訊一併存入 Firestore
         await addDoc(collection(db, "posts"), {
-            content,
-            tags,
+            content: content,
+            tags: tags,
+            linkPreview: linkPreviewData, // 這裡是重點：直接存入 Object
             createdAt: serverTimestamp()
         });
         document.getElementById('post-input').value = '';
     } catch (e) {
-        alert("發佈失敗: " + e.message);
+        console.error("發佈失敗", e);
     }
 });
+
+
+
+
+
+
 
 // 2. 監聽與渲染貼文
 let currentUnsubscribe = null;
@@ -79,22 +99,69 @@ function loadPosts(filterTag = null) {
         });
     });
 }
+//=========================
 
-function renderPost(data) {
+
+
+
+// ... 前面的程式碼 ...
+
+
+
+//透過一個「後端服務」去訪問該網址，抓取標題
+// 新增一個函式來抓取網址預覽
+async function getLinkPreview(url) {
+    // 這裡使用 linkpreview.net 作為範例 (需先去官網申請免費 API Key)
+    const apiKey = 'b8bd272ba6179d524d93939132b959ba'; 
+    const response = await fetch(`https://api.linkpreview.net/?key=${apiKey}&q=${url}`);
+    if (response.ok) {
+        return await response.json();
+    }
+    return null;
+}
+
+// 修改原本的 renderPost 函式
+async function renderPost(data) {
     const card = document.createElement('div');
     card.className = 'post-card';
     
-    // 將內容中的標籤轉換為可點擊連結
+    // 1. 處理文字與標籤
     let htmlContent = data.content.replace(/#([^\s#]+)/g, '<span class="tag-link" onclick="filterByTag(\'$1\')">#$1</span>');
     
+    // 2. 偵測網址 (簡單的網址正則)
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const urls = data.content.match(urlRegex);
+
     card.innerHTML = `
         <div class="post-content">${htmlContent}</div>
+        <div class="preview-container" id="preview-${data.id}"></div>
         <small style="color:#999">${data.createdAt?.toDate().toLocaleString() || '傳送中...'}</small>
     `;
     postList.appendChild(card);
+
+    // 3. 如果有網址，非同步抓取預覽圖
+    if (urls && urls.length > 0) {
+        const previewData = await getLinkPreview(urls[0]); // 抓第一個網址
+        if (previewData) {
+            const container = document.getElementById(`preview-${data.id}`);
+            container.innerHTML = `
+                <a href="${previewData.url}" target="_blank" class="link-preview">
+                    <img src="${previewData.image}" alt="preview">
+                    <div class="link-info">
+                        <strong>${previewData.title}</strong>
+                        <p>${previewData.description}</p>
+                    </div>
+                </a>
+            `;
+        }
+    }
 }
 
-// ... 前面的程式碼 ...
+/////以上/////新增一個函式來抓取網址預覽/////////////////////////
+
+
+
+
 
 // 3. 搜尋按鈕邏輯
 document.getElementById('search-btn').addEventListener('click', () => {
