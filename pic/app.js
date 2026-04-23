@@ -34,36 +34,38 @@ const postList = document.getElementById('post-list');
 // 1. 發佈貼文邏輯(old)
 //[修改]在資料寫入 Firestore 之前，先完成網址偵測與預覽資訊的抓取。
 // 在發佈按鈕的事件監聽器中修改
+// 修改後的發佈邏輯
+//
 document.getElementById('submit-btn').addEventListener('click', async () => {
     const content = document.getElementById('post-input').value;
     if (!content.trim()) return;
 
-    // A. 提取標籤 (原本的邏輯)
+    // 1. 提取標籤
     const tagRegex = /#([^\s#]+)/g;
     const matches = content.match(tagRegex) || [];
     const tags = matches.map(tag => tag.substring(1).toLowerCase());
 
-    // B. 偵測並抓取網址預覽 (新增的邏輯)
+    // 2. 偵測網址並預抓資料
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     const urls = content.match(urlRegex);
-    let linkPreviewData = null;
+    let previewData = null;
 
     if (urls && urls.length > 0) {
-        // 抓取第一個網址的預覽
-        linkPreviewData = await getLinkPreview(urls[0]);
+        // 呼叫 API 抓取資料
+        previewData = await getLinkPreview(urls[0]);
     }
 
     try {
-        // C. 將所有資訊一併存入 Firestore
+        // 3. 將資料完整存入 Firestore
         await addDoc(collection(db, "posts"), {
-            content: content,
-            tags: tags,
-            linkPreview: linkPreviewData, // 這裡是重點：直接存入 Object
+            content,
+            tags,
+            linkPreview: previewData, // 這裡會包含 title, description, image
             createdAt: serverTimestamp()
         });
         document.getElementById('post-input').value = '';
     } catch (e) {
-        console.error("發佈失敗", e);
+        alert("發佈失敗: " + e.message);
     }
 });
 
