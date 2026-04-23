@@ -53,8 +53,53 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
     }
 });
 
-// 2. 監聽與渲染貼文
+// 2. 監聽與渲染貼文(舊的)
+//let currentUnsubscribe = null;
+// ... 之前的發佈邏輯 ...
+
+
+
+// 2. 監聽與渲染貼文(新加入補回這一段 loadPosts 函式)
 let currentUnsubscribe = null;
+
+// --- 補回這一段 loadPosts 函式 ---
+function loadPosts(filterTag = null) {
+    if (currentUnsubscribe) currentUnsubscribe();
+
+    let q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
+    
+    if (filterTag) {
+        // 當有標籤過濾時
+        q = query(collection(db, "posts"), 
+                  where("tags", "array-contains", filterTag),
+                  orderBy("createdAt", "desc"));
+        document.getElementById('active-filter').classList.remove('hidden');
+        document.getElementById('current-tag').innerText = filterTag;
+    } else {
+        document.getElementById('active-filter').classList.add('hidden');
+    }
+
+    currentUnsubscribe = onSnapshot(q, (snapshot) => {
+        postList.innerHTML = '';
+        snapshot.forEach((doc) => {
+            const data = doc.data();
+            // 注意：將 doc.id 傳入以確保預覽圖容器有唯一 ID
+            renderPost({ ...data, id: doc.id });
+        });
+    });
+}
+// --- 補回結束 ---
+
+// 新增一個函式來抓取網址預覽
+async function getLinkPreview(url) {
+// (以上新加入補回這一段 loadPosts 函式)... 後面接你原本的代碼 ...
+
+
+
+
+
+
+
 
 // 新增一個函式來抓取網址預覽
 async function getLinkPreview(url) {
