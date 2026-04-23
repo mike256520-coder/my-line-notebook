@@ -33,34 +33,32 @@ const postList = document.getElementById('post-list');
 
 // 1. 發佈貼文邏輯(old)
 //[修改]在資料寫入 Firestore 之前，先完成網址偵測與預覽資訊的抓取。
-// 在發佈按鈕的事件監聽器中修改
+// 在發佈按鈕的事件監聽器(submit-btn)中修改
 // 修改後的發佈邏輯
 //
 document.getElementById('submit-btn').addEventListener('click', async () => {
     const content = document.getElementById('post-input').value;
     if (!content.trim()) return;
 
-    // 1. 提取標籤
     const tagRegex = /#([^\s#]+)/g;
     const matches = content.match(tagRegex) || [];
     const tags = matches.map(tag => tag.substring(1).toLowerCase());
 
-    // 2. 偵測網址並預抓資料
+    // --- 新增：發佈前先抓網址資訊 ---
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     const urls = content.match(urlRegex);
     let previewData = null;
 
     if (urls && urls.length > 0) {
-        // 呼叫 API 抓取資料
+        // 在存入資料庫前，先等 API 回傳
         previewData = await getLinkPreview(urls[0]);
     }
 
     try {
-        // 3. 將資料完整存入 Firestore
         await addDoc(collection(db, "posts"), {
             content,
             tags,
-            linkPreview: previewData, // 這裡會包含 title, description, image
+            linkPreview: previewData, // 這裡存入完整的物件 (包含 title)
             createdAt: serverTimestamp()
         });
         document.getElementById('post-input').value = '';
@@ -68,7 +66,6 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
         alert("發佈失敗: " + e.message);
     }
 });
-
 
 
 
@@ -126,13 +123,13 @@ async function getLinkPreview(url) {
 
 // 修改原本的 renderPost 函式渲染貼文
 
-async function renderPost(data) {
+function renderPost(data) {
     const card = document.createElement('div');
     card.className = 'post-card';
     
     let htmlContent = data.content.replace(/#([^\s#]+)/g, '<span class="tag-link" onclick="filterByTag(\'$1\')">#$1</span>');
     
-    // 檢查是否有預存的預覽資料
+    // 直接從 data 讀取，不需再呼叫 API
     let previewHtml = '';
     if (data.linkPreview) {
         const lp = data.linkPreview;
@@ -140,7 +137,7 @@ async function renderPost(data) {
             <a href="${lp.url}" target="_blank" class="link-preview">
                 ${lp.image ? `<img src="${lp.image}" alt="preview">` : ''}
                 <div class="link-info">
-                    <strong>${lp.title || '無標題'}</strong> 
+                    <strong>${lp.title || '連結預覽'}</strong>
                     <p>${lp.description || ''}</p>
                 </div>
             </a>
@@ -154,7 +151,6 @@ async function renderPost(data) {
     `;
     postList.appendChild(card);
 }
-
 
 /////以上/////新增一個函式來抓取網址預覽/////////////////////////
 
