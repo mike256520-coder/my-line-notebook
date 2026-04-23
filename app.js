@@ -1,5 +1,6 @@
 
 //3. app.js (邏輯)
+//damie   ANE0N-LZ7HA-9Y4IT-DBKA3-K7NIQ
 //這是核心檔案，負責處理標籤提取與 Firestore 互動。
 //開發重點說明
 //標籤提取技術：我們在儲存到 Firestore 前，先用 content.match(/#([^\s#]+)/g) 將所有標籤存入一個名為 tags 的 Array 欄位。這樣才能使用 Firestore 高效的 array-contains 查詢。
@@ -62,7 +63,7 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
 // 2. 監聽與渲染貼文(新加入補回這一段 loadPosts 函式)
 let currentUnsubscribe = null;
 
-// --- 補回這一段 loadPosts 函式 ---
+// --- 補回這一段 loadPosts 函式 JavaScript 讀到檔案最後一行 loadPosts(); 時，會往回找有沒有 function loadPosts 的宣告---
 function loadPosts(filterTag = null) {
     if (currentUnsubscribe) currentUnsubscribe();
 
@@ -178,5 +179,5 @@ document.getElementById('search-input').addEventListener('keypress', (e) => {
 window.filterByTag = (tag) => loadPosts(tag);
 window.clearFilter = () => loadPosts();
 
-// 初始載入
+// 初始載入...JavaScript 讀到檔案最後一行 loadPosts(); 時，會往回找有沒有 function loadPosts 的宣告
 loadPosts();
