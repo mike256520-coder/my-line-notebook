@@ -1,5 +1,8 @@
-# my-line-notebook
+# my-line-notebook文字版
 https://mike256520-coder.github.io/my-line-notebook/
+
+# my-line-notebook圖文版
+https://mike256520-coder.github.io/my-line-notebook/pic
 
 # 重點說明
 
