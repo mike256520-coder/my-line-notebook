@@ -153,15 +153,16 @@ async function renderPost(data) {
 // ... 前面的程式碼 ...
 
 // 3. 搜尋按鈕邏輯
+// ... 之前的 loadPosts, getLinkPreview, renderPost 等函式 ...
+// 3. 搜尋按鈕邏輯 (確保這部分的大括號是完整的)
 document.getElementById('search-btn').addEventListener('click', () => {
     const searchInput = document.getElementById('search-input');
-    // 自動去掉使用者可能輸入的 # 號，並修剪空白
     const tag = searchInput.value.replace('#', '').trim();
     
     if (tag) {
         window.filterByTag(tag);
     } else {
-        window.clearFilter(); // 如果搜尋框是空的，就顯示全部
+        window.clearFilter();
     }
 });
 
@@ -172,12 +173,13 @@ document.getElementById('search-input').addEventListener('keypress', (e) => {
     }
 });
 
-// ... 後面的載入邏輯 ...
-
+// --- 修正重點：確保這裡沒有被包在其他函數裡 ---
 
 // 暴露給 HTML 使用的全局函數
 window.filterByTag = (tag) => loadPosts(tag);
 window.clearFilter = () => loadPosts();
 
-// 初始載入...JavaScript 讀到檔案最後一行 loadPosts(); 時，會往回找有沒有 function loadPosts 的宣告
+// 初始載入
 loadPosts();
+
+// 注意：請檢查這行後面「不要」有多餘的大括號 }
