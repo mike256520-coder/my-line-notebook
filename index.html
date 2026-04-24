@@ -7,27 +7,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Notebook - 類 LINE 記事本</title>
+    <title>LINE 文字版-記事本</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
     <div class="container">
         <header>
-            <h1>記事本</h1>
+            [文字版記事本] #待分。#金融。#音樂 #吉他。#醫健。#水電。#PC。#英文。#歷史 #搜奇。#--。#--
 			<div class="search-area">
-        <input type="text" id="search-input" placeholder="輸入標籤搜尋 (例如：美食)...">
+        <input type="text" id="search-input" placeholder="搜尋標簽...">
         <button id="search-btn">搜尋</button>
     </div>
             <div id="active-filter" class="hidden">
                 正在查看標籤: <span id="current-tag"></span>
-                <button onclick="clearFilter()">清除過濾</button>
+                <button onclick="clearFilter()">清除搜尋</button>
             </div>
         </header>
 
         <section class="post-box">
-            <textarea id="post-input" placeholder="分享你的想法... (使用 #標籤)"></textarea>
-            <button id="submit-btn">發佈</button>
+            <textarea id="post-input" placeholder="#標簽...FB崁入連接"></textarea>
+            <button id="submit-btn">送出</button>
         </section>
 
         <main id="post-list">
