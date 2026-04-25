@@ -1,3 +1,6 @@
+//*// 在 app.js 的 submit-btn 監聽器中找到這行：
+//document.getElementById('post-input').value = ''; // 修改為：
+//document.getElementById('post-input').value = '#吉他 ';
 
 //3. app.js (邏輯)
 //這是核心檔案，負責處理標籤提取與 Firestore 互動。
@@ -60,7 +63,7 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
             linkPreview: previewData, // 關鍵：把抓到的 title 存進去
             createdAt: serverTimestamp()
         });
-        document.getElementById('post-input').value = '';
+        document.getElementById('post-input').value = '#吉他';
     } catch (e) {
         console.error("發佈失敗", e);
     }
