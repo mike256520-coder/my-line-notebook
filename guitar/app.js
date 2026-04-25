@@ -162,25 +162,6 @@ function renderPost(data) {
 
 
 
-// 3. 搜尋按鈕邏輯
-document.getElementById('search-btn').addEventListener('click', () => {
-    const searchInput = document.getElementById('search-input');
-    // 自動去掉使用者可能輸入的 # 號，並修剪空白
-    const tag = searchInput.value.replace('#', '').trim();
-    
-    if (tag) {
-        window.filterByTag(tag);
-    } else {
-        window.clearFilter(); // 如果搜尋框是空的，就顯示全部
-    }
-});
-
-// 支援按下 Enter 鍵搜尋
-document.getElementById('search-input').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        document.getElementById('search-btn').click();
-    }
-});
 
 // ... 後面的載入邏輯 ...
 
