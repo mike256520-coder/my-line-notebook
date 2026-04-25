@@ -1,35 +1,32 @@
 <!DOCTYPE html>
-<!-- 
+<!-- #006633
 *damie
   ANE0N-LZ7HA-9Y4IT-DBKA3-K7NIQ
-* index.html (結構)這個檔案定義了輸入區域、標籤過濾顯示區以及貼文列表
-( href="style.css")<script type="module" src="app.js">。
+*<textarea id="post-input" placeholder="內容... (#標籤)">#吉他 </textarea>
+* // 在 app.js 的 submit-btn 監聽器中找到這行：
+document.getElementById('post-input').value = '';
+
+// 修改為：
+document.getElementById('post-input').value = '#吉他 ';
 *  ai  https://gemini.google.com/share/bda16ca30354
 -->
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Notebook - 類 LINE 記事本</title>
+    <title>LINE pic記事本</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
     <div class="container">
         <header>
-            <h1>記事本</h1>
-			<div class="search-area">
-        <input type="text" id="search-input" placeholder="輸入標籤搜尋 (例如：美食)...">
-        <button id="search-btn">搜尋</button>
-    </div>
-            <div id="active-filter" class="hidden">
-                正在查看標籤: <span id="current-tag"></span>
-                <button onclick="clearFilter()">清除過濾</button>
-            </div>
+            =PIC記事本= #吉他
+			
         </header>
 
         <section class="post-box">
-            <textarea id="post-input" placeholder="分享你的想法... (使用 #標籤)"></textarea>
+            <textarea id="post-input">#吉他</textarea>
             <button id="submit-btn">發佈</button>
         </section>
 
