@@ -1,3 +1,6 @@
+//*// 找到 app.js 最末端，將 loadPosts() 改為：
+// 這樣一進到這個網頁，就只會抓取帶有 #吉他 標籤的內容 loadPosts('吉他');
+
 //*// 在 app.js 的 submit-btn 監聽器中找到這行：
 //document.getElementById('post-input').value = ''; // 修改為：
 //document.getElementById('post-input').value = '#吉他 ';
@@ -187,4 +190,4 @@ window.filterByTag = (tag) => loadPosts(tag);
 window.clearFilter = () => loadPosts();
 
 // 初始載入
-loadPosts();
+loadPosts('吉他');
