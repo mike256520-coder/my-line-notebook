@@ -1,13 +1,9 @@
 <!DOCTYPE html>
-<!-- #006633
+<!-- 
 *damie
   ANE0N-LZ7HA-9Y4IT-DBKA3-K7NIQ
-*<textarea id="post-input" placeholder="內容... (#標籤)">#吉他 </textarea>
-* // 在 app.js 的 submit-btn 監聽器中找到這行：
-document.getElementById('post-input').value = '';
-
-// 修改為：
-document.getElementById('post-input').value = '#吉他 ';
+* index.html (結構)這個檔案定義了輸入區域、標籤過濾顯示區以及貼文列表
+( href="style.css")<script type="module" src="app.js">。
 *  ai  https://gemini.google.com/share/bda16ca30354
 -->
 <html lang="zh-TW">
@@ -21,13 +17,20 @@ document.getElementById('post-input').value = '#吉他 ';
 <body>
     <div class="container">
         <header>
-            =PIC記事本= #吉他
-			
+            =PIC記事本= #待分。#金融。#音樂。#醫健。#水電。#pc。#英文。#歷史 #搜奇。#音樂。#醫健
+			<div class="search-area">
+        <input type="text" id="search-input" placeholder="搜尋標籤...">
+        <button id="search-btn">搜尋</button>
+    </div>
+            <div id="active-filter" class="hidden">
+                正在查看標籤: <span id="current-tag"></span>
+                <button onclick="clearFilter()">清除搜尋</button>
+            </div>
         </header>
 
         <section class="post-box">
-            <textarea id="post-input">#吉他</textarea>
-            <button id="submit-btn">發佈</button>
+            <textarea id="post-input" placeholder="#標籤...YT截圖版(FB不適用)"></textarea>
+            <button id="submit-btn">送出(稍待截圖)</button>
         </section>
 
         <main id="post-list">
