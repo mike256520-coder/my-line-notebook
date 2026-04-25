@@ -1,3 +1,5 @@
+
+//del  暴露給 HTML 使用的全局函數
 //*// 找到 app.js 最末端，將 loadPosts() 改為：
 // 這樣一進到這個網頁，就只會抓取帶有 #吉他 標籤的內容 loadPosts('吉他');
 
@@ -167,8 +169,7 @@ function renderPost(data) {
 
 
 // 暴露給 HTML 使用的全局函數
-window.filterByTag = (tag) => loadPosts(tag);
-window.clearFilter = () => loadPosts();
+
 
 // 初始載入
 loadPosts('吉他');
