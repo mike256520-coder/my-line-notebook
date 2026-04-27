@@ -110,8 +110,8 @@ postBox.addEventListener('drop', (e) => {
 // ════════════════════════════════════════
 // ── 抓取網址預覽 (linkpreview.net) ──吉他版只看
 // ════════════════════════════════════════
-//async function getLinkPreview(url) {
-   // const apiKey = 'b8bd272ba6179d524d93939132b959ba';
+async function getLinkPreview(url) {
+    const apiKey = 'b8bd272ba6179d524d93939132b959ba';
     //try {
        // const response = await fetch(`https://api.linkpreview.net/?key=${apiKey}&q=${url}`);
         //if (response.ok) return await response.json();
@@ -250,4 +250,4 @@ document.getElementById('search-input').addEventListener('keypress', (e) => {
 window.filterByTag = (tag) => loadPosts(tag);
 window.clearFilter = () => loadPosts();
 
-loadPosts();
+loadPosts('吉他');
