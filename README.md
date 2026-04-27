@@ -4,6 +4,9 @@ https://mike256520-coder.github.io/my-line-notebook/
 # my-line-notebook圖文版
 https://mike256520-coder.github.io/my-line-notebook/pic
 
+# ai新增可附圖
+https://claude.ai/share/aa53b308-a308-4ad6-bfc1-33ad22c00f23
+
 # 重點說明
 
 標籤提取技術：我們在儲存到 Firestore 前，先用 content.match(/#([^\s#]+)/g) 將所有標籤存入一個名為 tags 的 Array 欄位。
