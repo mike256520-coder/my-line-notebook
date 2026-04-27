@@ -1,6 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyACO9osKdxj8x2-fAwxgUM0YA_zM2uCWwU",
@@ -13,15 +12,45 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const storage = getStorage(app);
 const postList = document.getElementById('post-list');
+
+// ── Canvas 壓縮圖片 → Base64 ──
+// 最長邊縮到 800px，JPEG 品質 0.75，確保單張 < 700KB
+function compressImageToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const MAX_SIDE = 800;
+        const QUALITY = 0.75;
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+            URL.revokeObjectURL(url);
+            let { width, height } = img;
+            if (width > MAX_SIDE || height > MAX_SIDE) {
+                if (width >= height) { height = Math.round(height * MAX_SIDE / width); width = MAX_SIDE; }
+                else { width = Math.round(width * MAX_SIDE / height); height = MAX_SIDE; }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', QUALITY));
+        };
+        img.onerror = reject;
+        img.src = url;
+    });
+}
 
 // ── 圖片預覽狀態 ──
 let pendingImages = []; // { file, objectURL }
+const MAX_IMAGES = 3;   // Firestore 1MB 文件上限，最多 3 張
 
 // 圖片選擇（按鈕 or 貼上）
 function addImageFile(file) {
     if (!file || !file.type.startsWith('image/')) return;
+    if (pendingImages.length >= MAX_IMAGES) {
+        alert(`最多只能貼 ${MAX_IMAGES} 張圖片（Firestore 文件上限 1MB）`);
+        return;
+    }
     const objectURL = URL.createObjectURL(file);
     pendingImages.push({ file, objectURL });
     renderImagePreviews();
@@ -80,18 +109,6 @@ postBox.addEventListener('drop', (e) => {
     Array.from(e.dataTransfer.files).forEach(addImageFile);
 });
 
-// ── 上傳圖片到 Storage ──
-async function uploadImages(files) {
-    const urls = [];
-    for (const file of files) {
-        const storageRef = ref(storage, `images/${Date.now()}_${file.name}`);
-        const snapshot = await uploadBytes(storageRef, file);
-        const url = await getDownloadURL(snapshot.ref);
-        urls.push(url);
-    }
-    return urls;
-}
-
 // ── 1. 發佈貼文邏輯 ──
 document.getElementById('submit-btn').addEventListener('click', async () => {
     const content = document.getElementById('post-input').value;
@@ -99,26 +116,28 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
 
     const btn = document.getElementById('submit-btn');
     btn.disabled = true;
-    btn.textContent = '上傳中...';
+    btn.textContent = '壓縮中...';
 
     const tagRegex = /#([^\s#]+)/g;
     const matches = content.match(tagRegex) || [];
     const tags = matches.map(tag => tag.substring(1));
 
     try {
-        // 上傳圖片
-        const imageFiles = pendingImages.map(p => p.file);
-        const imageUrls = imageFiles.length > 0 ? await uploadImages(imageFiles) : [];
+        // Canvas 壓縮 → Base64，全部並行處理
+        const imageBase64s = await Promise.all(
+            pendingImages.map(p => compressImageToBase64(p.file))
+        );
+
+        btn.textContent = '儲存中...';
 
         await addDoc(collection(db, "posts"), {
             content,
             tags,
-            imageUrls,
+            imageBase64s,   // 直接存 Base64 陣列到 Firestore
             createdAt: serverTimestamp()
         });
 
         document.getElementById('post-input').value = '';
-        // 清除預覽
         pendingImages.forEach(p => URL.revokeObjectURL(p.objectURL));
         pendingImages = [];
         renderImagePreviews();
@@ -160,11 +179,11 @@ function renderPost(data) {
 
     let htmlContent = (data.content || '').replace(/#([^\s#]+)/g, '<span class="tag-link" onclick="filterByTag(\'$1\')">#$1</span>');
 
-    // 圖片區塊
+    // 圖片區塊（Base64 直接當 src）
     let imagesHtml = '';
-    if (data.imageUrls && data.imageUrls.length > 0) {
-        const imgs = data.imageUrls.map(url =>
-            `<a href="${url}" target="_blank"><img src="${url}" class="post-image" loading="lazy" /></a>`
+    if (data.imageBase64s && data.imageBase64s.length > 0) {
+        const imgs = data.imageBase64s.map(b64 =>
+            `<a href="${b64}" target="_blank"><img src="${b64}" class="post-image" loading="lazy" /></a>`
         ).join('');
         imagesHtml = `<div class="post-images">${imgs}</div>`;
     }
