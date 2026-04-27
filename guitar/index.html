@@ -1,11 +1,4 @@
 <!DOCTYPE html>
-<!-- 
-*damie
-  ANE0N-LZ7HA-9Y4IT-DBKA3-K7NIQ
-* index.html (結構)這個檔案定義了輸入區域、標籤過濾顯示區以及貼文列表
-( href="style.css")<script type="module" src="app.js">。
-*  ai  https://gemini.google.com/share/bda16ca30354
--->
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
@@ -17,11 +10,11 @@
 <body>
     <div class="container">
         <header>
-            =PIC記事本(吉他)= #和弦。#音階。#電吉。#。# 。#。#
-			<div class="search-area">
-        <input type="text" id="search-input" placeholder="搜尋標籤...">
-        <button id="search-btn">搜尋</button>
-    </div>
+            =PIC記事本= #其他。#金融。#音樂#吉他#和弦#音階#歌曲#演奏。#醫健#旅遊#登山。#居家#水電#購物。#PC。#歷史#宗教#搜奇#宁宙#物理。#英文
+            <div class="search-area">
+                <input type="text" id="search-input" placeholder="搜尋標籤...">
+                <button id="search-btn">搜尋</button>
+            </div>
             <div id="active-filter" class="hidden">
                 正在查看標籤: <span id="current-tag"></span>
                 <button onclick="clearFilter()">清除搜尋</button>
@@ -29,8 +22,16 @@
         </header>
 
         <section class="post-box">
-            <textarea id="post-input" placeholder="#標籤...YT截圖版(FB不適用)">#吉他</textarea>
-            <button id="submit-btn">送出(稍待截圖)</button>
+            <textarea id="post-input" placeholder="#標籤...YT截圖版(FB不適用)&#10;可拖圖"></textarea>
+
+            <!-- 圖片預覽區 -->
+            <div id="image-preview-container"></div>
+
+            <div class="post-actions">
+                <input type="file" id="image-input" accept="image/*" multiple style="display:none">
+                <button id="image-btn" title="上傳圖片">🖼 圖片</button>
+                <button id="submit-btn">送出(稍待截圖)</button>
+            </div>
         </section>
 
         <main id="post-list">
