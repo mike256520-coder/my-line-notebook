@@ -190,5 +190,3 @@ window.filterByTag = (tag) => loadPosts(tag);
 window.clearFilter = () => loadPosts();
 
 loadPosts('吉他');
-
-loadPosts('吉他');
