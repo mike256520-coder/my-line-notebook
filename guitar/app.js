@@ -181,9 +181,7 @@ function loadPosts(filterTag = null) {
     });
 }
 
-document.getElementById('search-btn').addEventListener('click', () => {
-    const tag = document.getElementById('search-input').value.replace('#', '').trim();
-    tag ? window.filterByTag(tag) : window.clearFilter();
+
 });
 
 window.filterByTag = (tag) => loadPosts(tag);
