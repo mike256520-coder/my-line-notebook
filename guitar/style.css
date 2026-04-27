@@ -1,6 +1,3 @@
-/*<!-- 2. style.css (¼Ë¦¡)
-§Ú­Ì¼Ò¥é LINE °O¨Æ¥»ªºÂ²¼äºñ¦â½Õ»P¶ê¨¤¥d¤ù³]­p¡C -->*/
-
 body {
     background-color: #f4f4f4;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -29,6 +26,13 @@ header {
     border-bottom: 8px solid #f4f4f4;
 }
 
+/* æ‹–æ”¾é«˜äº® */
+.post-box.drag-over {
+    background: #e8f9e9;
+    border: 2px dashed #52d05a;
+    border-radius: 8px;
+}
+
 textarea {
     width: 100%;
     height: 80px;
@@ -40,17 +44,81 @@ textarea {
     resize: none;
 }
 
+/* â”€â”€ åœ–ç‰‡é è¦½ç¸®åœ– â”€â”€ */
+#image-preview-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.preview-thumb-wrapper {
+    position: relative;
+    width: 80px;
+    height: 80px;
+}
+
+.preview-thumb {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
+
+.remove-thumb {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: rgba(0,0,0,0.6);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 11px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+/* â”€â”€ ç™¼æ–‡æŒ‰éˆ•åˆ— â”€â”€ */
+.post-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+}
+
+#image-btn {
+    background: #f0f0f0;
+    color: #333;
+    border: 1px solid #ccc;
+    padding: 7px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+#image-btn:hover { background: #e0e0e0; }
+
 #submit-btn {
     background: #52d05a;
     color: white;
     border: none;
     padding: 8px 20px;
     border-radius: 20px;
-    margin-top: 10px;
-    float: right;
     cursor: pointer;
 }
 
+#submit-btn:disabled {
+    background: #aaa;
+    cursor: not-allowed;
+}
+
+/* â”€â”€ è²¼æ–‡å¡ç‰‡ â”€â”€ */
 .post-card {
     padding: 20px;
     border-bottom: 1px solid #eee;
@@ -62,6 +130,33 @@ textarea {
     line-height: 1.5;
     color: #333;
 }
+
+/* â”€â”€ è²¼æ–‡ä¸­çš„åœ–ç‰‡ â”€â”€ */
+.post-images {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.post-images a { display: block; }
+
+.post-image {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: 8px;
+    object-fit: cover;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.post-images:has(a:nth-child(2)) .post-image {
+    max-height: 160px;
+    width: 160px;
+    object-fit: cover;
+}
+
+.post-image:hover { opacity: 0.85; }
 
 .tag-link {
     color: #1a73e8;
@@ -104,15 +199,9 @@ textarea {
     font-weight: bold;
 }
 
-#search-btn:hover {
-    background-color: #2d662f;
-}
+#search-btn:hover { background-color: #2d662f; }
 
-
-/*<!--¥[¤J CSS ¼Ë¦¡
-Åı¹wÄı¥d¤ù¬İ°_¨Ó¹³ LINE ªº½è·P¡G-->*/
-
-
+/* â”€â”€ ç¶²å€é è¦½å¡ç‰‡ â”€â”€ */
 .link-preview {
     display: block;
     border: 1px solid #ddd;
@@ -130,9 +219,7 @@ textarea {
     object-fit: cover;
 }
 
-.link-info {
-    padding: 10px;
-}
+.link-info { padding: 10px; }
 
 .link-info strong {
     display: block;
@@ -146,7 +233,7 @@ textarea {
     color: #666;
     margin: 0;
     display: -webkit-box;
-    -webkit-line-clamp: 2; /* ­­¨îÅã¥Ü¨â¦æ */
+    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
