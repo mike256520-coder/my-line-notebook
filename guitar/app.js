@@ -87,7 +87,7 @@ postInput.addEventListener('paste', (e) => {
     }
 });
 
-// ── 1. 發佈貼文 (新版：移除 API 呼叫) ──
+// ── 1. 發佈貼文 (吉他版：移除 API 呼叫 linkPreview ) ──
 document.getElementById('submit-btn').addEventListener('click', async () => {
     const content = postInput.value;
     if (!content.trim() && pendingImages.length === 0) return;
@@ -189,4 +189,4 @@ document.getElementById('search-btn').addEventListener('click', () => {
 window.filterByTag = (tag) => loadPosts(tag);
 window.clearFilter = () => loadPosts();
 
-loadPosts();
+loadPosts('吉他');
