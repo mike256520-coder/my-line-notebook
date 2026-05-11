@@ -1,3 +1,7 @@
+// ════════════════════════════════════════
+//damie
+//ANE0N-LZ7HA-9Y4IT-DBKA3-K7NIQ
+// ════════════════════════════════════════
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
