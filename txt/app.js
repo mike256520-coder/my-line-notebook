@@ -179,11 +179,11 @@ function renderPost(data) {
 
     let htmlContent = (data.content || '').replace(/#([^\s#]+)/g, '<span class="tag-link" onclick="filterByTag(\'$1\')">#$1</span>');
 
-    // 圖片區塊（Base64 直接當 src）
+    // 圖片區塊（Base64 直接當 src）加onclick="window.open(this.src,'_blank')"
     let imagesHtml = '';
     if (data.imageBase64s && data.imageBase64s.length > 0) {
         const imgs = data.imageBase64s.map(b64 =>
-            `<a href="${b64}" target="_blank"><img src="${b64}" class="post-image" loading="lazy" /></a>`
+            `<a href="${b64}" target="_blank"><img src="${b64}" class="post-image" loading="lazy"onclick="window.open(this.src,'_blank')" /></a>`
         ).join('');
         imagesHtml = `<div class="post-images">${imgs}</div>`;
     }
