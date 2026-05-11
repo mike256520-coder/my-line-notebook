@@ -181,12 +181,20 @@ function renderPost(data) {
 
     // 圖片區塊（Base64 直接當 src）加onclick="window.open(this.src,'_blank')"
     let imagesHtml = '';
-    if (data.imageBase64s && data.imageBase64s.length > 0) {
-        const imgs = data.imageBase64s.map(b64 =>
-            `<a href="${b64}" target="_blank"><img src="${b64}" class="post-image" loading="lazy"onclick="window.open(this.src,'_blank')" /></a>`
-        ).join('');
-        imagesHtml = `<div class="post-images">${imgs}</div>`;
-    }
+if (data.imageBase64s && data.imageBase64s.length > 0) {
+    const imgs = data.imageBase64s.map(b64 => {
+        const onclick = `
+            var arr=atob('${b64}'.split(',')[1]),
+                mime='image/jpeg',
+                u8=new Uint8Array(arr.length);
+            for(var i=0;i<arr.length;i++) u8[i]=arr.charCodeAt(i);
+            var url=URL.createObjectURL(new Blob([u8],{type:mime}));
+            window.open(url,'_blank');
+        `.replace(/\s+/g, ' ');
+        return `<img src="${b64}" class="post-image" loading="lazy" style="cursor:pointer" onclick="${onclick}">`;
+    }).join('');
+    imagesHtml = `<div class="post-images">${imgs}</div>`;
+}
 
     card.innerHTML = `
         <div class="post-content">${htmlContent}</div>
