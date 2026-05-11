@@ -228,6 +228,7 @@ if (data.imageBase64s && data.imageBase64s.length > 0) {
 
 card.innerHTML = `
     <div class="post-content">${htmlContent}</div>
+    ${previewHtml}
     ${imagesHtml}
     <small style="color:#999">${data.createdAt?.toDate().toLocaleString() || '傳送中...'}</small>
 `;
@@ -245,6 +246,7 @@ card.querySelectorAll('.post-image').forEach((img, i) => {
 });
 
 postList.appendChild(card);
+} // ── renderPost 結束 ──
 
 // ════════════════════════════════════════
 // ── 3. 搜尋邏輯 ──
