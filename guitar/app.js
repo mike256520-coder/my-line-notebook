@@ -1,3 +1,7 @@
+// ══════linenote 吉他版══════════════════════════════════
+//damie
+//ANE0N-LZ7HA-9Y4IT-DBKA3-K7NIQ
+// ════════════════════════════════════════
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
@@ -13,9 +17,11 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const postList = document.getElementById('post-list');
-const postInput = document.getElementById('post-input');
 
-// ── Canvas 壓縮圖片 ──
+// ════════════════════════════════════════
+// ── Canvas 壓縮圖片 → Base64 ──
+// 最長邊縮到 800px，JPEG 品質 0.75
+// ════════════════════════════════════════
 function compressImageToBase64(file) {
     return new Promise((resolve, reject) => {
         const MAX_SIDE = 800;
@@ -40,13 +46,16 @@ function compressImageToBase64(file) {
     });
 }
 
-let pendingImages = []; 
-const MAX_IMAGES = 3;
+// ════════════════════════════════════════
+// ── 圖片預覽狀態 ──
+// ════════════════════════════════════════
+let pendingImages = []; // { file, objectURL }
+const MAX_IMAGES = 3;   // Firestore 1MB 文件上限，最多 3 張
 
 function addImageFile(file) {
     if (!file || !file.type.startsWith('image/')) return;
     if (pendingImages.length >= MAX_IMAGES) {
-        alert(`最多只能貼 ${MAX_IMAGES} 張圖片`);
+        alert(`最多只能貼 ${MAX_IMAGES} 張圖片（Firestore 文件上限 1MB）`);
         return;
     }
     const objectURL = URL.createObjectURL(file);
@@ -74,43 +83,90 @@ window.removeImage = (index) => {
     renderImagePreviews();
 };
 
-document.getElementById('image-btn').addEventListener('click', () => document.getElementById('image-input').click());
+// 🖼 圖片按鈕
+document.getElementById('image-btn').addEventListener('click', () => {
+    document.getElementById('image-input').click();
+});
 document.getElementById('image-input').addEventListener('change', (e) => {
     Array.from(e.target.files).forEach(addImageFile);
     e.target.value = '';
 });
 
-postInput.addEventListener('paste', (e) => {
+// Ctrl+V 貼上圖片
+document.getElementById('post-input').addEventListener('paste', (e) => {
     const items = e.clipboardData?.items;
+    if (!items) return;
     for (const item of items) {
         if (item.type.startsWith('image/')) addImageFile(item.getAsFile());
     }
 });
 
-// ── 1. 發佈貼文 (新版：移除 API 呼叫) ──
+// 拖放圖片
+const postBox = document.querySelector('.post-box');
+postBox.addEventListener('dragover', (e) => { e.preventDefault(); postBox.classList.add('drag-over'); });
+postBox.addEventListener('dragleave', () => postBox.classList.remove('drag-over'));
+postBox.addEventListener('drop', (e) => {
+    e.preventDefault();
+    postBox.classList.remove('drag-over');
+    Array.from(e.dataTransfer.files).forEach(addImageFile);
+});
+
+// ════════════════════════════════════════
+// ── 抓取網址預覽 (linkpreview.net) ──
+// ════════════════════════════════════════
+async function getLinkPreview(url) {
+    const apiKey = 'b8bd272ba6179d524d93939132b959ba';
+    try {
+        const response = await fetch(`https://api.linkpreview.net/?key=${apiKey}&q=${url}`);
+        if (response.ok) return await response.json();
+    } catch (e) {
+        console.warn("預覽抓取失敗", e);
+    }
+    return null;
+}
+
+// ════════════════════════════════════════
+// ── 1. 發佈貼文邏輯 ──
+// ════════════════════════════════════════
 document.getElementById('submit-btn').addEventListener('click', async () => {
-    const content = postInput.value;
+    const content = document.getElementById('post-input').value;
     if (!content.trim() && pendingImages.length === 0) return;
 
     const btn = document.getElementById('submit-btn');
     btn.disabled = true;
-    btn.textContent = '處理中...';
 
-    const tags = content.match(/#([^\s#]+)/g)?.map(tag => tag.substring(1)) || [];
+    const tags = content.match(/#([^\s#]+)/g)?.map(t => t.slice(1)) || [];
 
     try {
-        const imageBase64s = await Promise.all(pendingImages.map(p => compressImageToBase64(p.file)));
+        // 偵測網址 → 抓預覽
+        let previewData = null;
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        const urls = content.match(urlRegex);
+        if (urls && urls.length > 0) {
+            btn.textContent = '抓取預覽中...';
+            previewData = await getLinkPreview(urls[0]);
+        }
 
+        // 壓縮圖片 → Base64
+        btn.textContent = '壓縮圖片中...';
+        const imageBase64s = await Promise.all(
+            pendingImages.map(p => compressImageToBase64(p.file))
+        );
+
+        btn.textContent = '儲存中...';
         await addDoc(collection(db, "posts"), {
             content,
             tags,
+           //原始 linkPreview: previewData,
             imageBase64s,
             createdAt: serverTimestamp()
-            // 注意：這裡不再加入 linkPreview 欄位
+           // 注意：這裡不再加入 linkPreview 欄位
         });
 
-        // 成功後預填 #吉他
+ // 成功後預填 #吉他
         postInput.value = '#吉他 '; 
+        //原始document.getElementById('post-input').value = '';
+
         pendingImages.forEach(p => URL.revokeObjectURL(p.objectURL));
         pendingImages = [];
         renderImagePreviews();
@@ -122,15 +178,39 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
     }
 });
 
-// ── 2. 渲染貼文 (支援舊有的 linkPreview) ──
+// ════════════════════════════════════════
+// ── 2. 監聽與渲染貼文 ──
+// ════════════════════════════════════════
+let currentUnsubscribe = null;
+
+function loadPosts(filterTag = null) {
+    if (currentUnsubscribe) currentUnsubscribe();
+
+    let q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
+
+    if (filterTag) {
+        q = query(collection(db, "posts"),
+                  where("tags", "array-contains", filterTag),
+                  orderBy("createdAt", "desc"));
+        document.getElementById('active-filter').classList.remove('hidden');
+        document.getElementById('current-tag').innerText = filterTag;
+    } else {
+        document.getElementById('active-filter').classList.add('hidden');
+    }
+
+    currentUnsubscribe = onSnapshot(q, (snapshot) => {
+        postList.innerHTML = '';
+        snapshot.forEach((doc) => renderPost(doc.data()));
+    });
+}
+
 function renderPost(data) {
     const card = document.createElement('div');
     card.className = 'post-card';
 
-    // 處理文字與標籤
     let htmlContent = (data.content || '').replace(/#([^\s#]+)/g, '<span class="tag-link" onclick="filterByTag(\'$1\')">#$1</span>');
 
-    // [相容層]：檢查是否有舊版的網址預覽資料
+    // 網址預覽卡片
     let previewHtml = '';
     if (data.linkPreview) {
         const lp = data.linkPreview;
@@ -145,48 +225,51 @@ function renderPost(data) {
         `;
     }
 
-    // 處理圖片
-    let imagesHtml = '';
-    if (data.imageBase64s && data.imageBase64s.length > 0) {
-        const imgs = data.imageBase64s.map(b64 =>
-            `<a href="${b64}" target="_blank"><img src="${b64}" class="post-image" loading="lazy" /></a>`
-        ).join('');
-        imagesHtml = `<div class="post-images">${imgs}</div>`;
-    }
-
-    card.innerHTML = `
-        <div class="post-content">${htmlContent}</div>
-        ${previewHtml}
-        ${imagesHtml}
-        <small style="color:#999">${data.createdAt?.toDate().toLocaleString() || '傳送中...'}</small>
-    `;
-    postList.appendChild(card);
+   // 圖片區塊（Base64 直接當 src）
+let imagesHtml = '';
+if (data.imageBase64s && data.imageBase64s.length > 0) {
+    const imgs = data.imageBase64s.map((b64, i) =>
+        `<img src="${b64}" class="post-image" loading="lazy" style="cursor:pointer" data-index="${i}">`
+    ).join('');
+    imagesHtml = `<div class="post-images">${imgs}</div>`;
 }
 
-// ── 3. 基礎邏輯 ──
-let currentUnsubscribe = null;
-function loadPosts(filterTag = null) {
-    if (currentUnsubscribe) currentUnsubscribe();
-    let q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
-    if (filterTag) {
-        q = query(collection(db, "posts"), where("tags", "array-contains", filterTag), orderBy("createdAt", "desc"));
-        document.getElementById('active-filter').classList.remove('hidden');
-        document.getElementById('current-tag').innerText = filterTag;
-    } else {
-        document.getElementById('active-filter').classList.add('hidden');
-    }
-    currentUnsubscribe = onSnapshot(q, (snapshot) => {
-        postList.innerHTML = '';
-        snapshot.forEach((doc) => renderPost(doc.data()));
+card.innerHTML = `
+    <div class="post-content">${htmlContent}</div>
+    ${previewHtml}
+    ${imagesHtml}
+    <small style="color:#999">${data.createdAt?.toDate().toLocaleString() || '傳送中...'}</small>
+`;
+
+// 事件監聽器加在 img 上，避免 Base64 放進 HTML 屬性
+card.querySelectorAll('.post-image').forEach((img, i) => {
+    img.addEventListener('click', () => {
+        const b64 = data.imageBase64s[i];
+        const byteStr = atob(b64.split(',')[1]);
+        const u8 = new Uint8Array(byteStr.length);
+        for (let j = 0; j < byteStr.length; j++) u8[j] = byteStr.charCodeAt(j);
+        const url = URL.createObjectURL(new Blob([u8], { type: 'image/jpeg' }));
+        window.open(url, '_blank');
     });
-}
+});
 
+postList.appendChild(card);
+} // ── renderPost 結束 ──
+
+// ════════════════════════════════════════
+// ── 3. 搜尋邏輯 ──
+// ════════════════════════════════════════
 document.getElementById('search-btn').addEventListener('click', () => {
     const tag = document.getElementById('search-input').value.replace('#', '').trim();
     tag ? window.filterByTag(tag) : window.clearFilter();
 });
 
+document.getElementById('search-input').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') document.getElementById('search-btn').click();
+});
+
 window.filterByTag = (tag) => loadPosts(tag);
 window.clearFilter = () => loadPosts();
 
+//loadPosts();
 loadPosts('吉他');
