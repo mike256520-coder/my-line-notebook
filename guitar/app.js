@@ -1,4 +1,4 @@
-// ══════linenote 吉他版══════════════════════════════════
+// ═══════吉他 linenote═════════════════════════════════
 //damie
 //ANE0N-LZ7HA-9Y4IT-DBKA3-K7NIQ
 // ════════════════════════════════════════
@@ -157,16 +157,12 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
         await addDoc(collection(db, "posts"), {
             content,
             tags,
-           //原始 linkPreview: previewData,
+            linkPreview: previewData,
             imageBase64s,
             createdAt: serverTimestamp()
-           // 注意：這裡不再加入 linkPreview 欄位
         });
 
- // 成功後預填 #吉他
-        postInput.value = '#吉他 '; 
-        //原始document.getElementById('post-input').value = '';
-
+        document.getElementById('post-input').value = '';
         pendingImages.forEach(p => URL.revokeObjectURL(p.objectURL));
         pendingImages = [];
         renderImagePreviews();
