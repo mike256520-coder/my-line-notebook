@@ -217,23 +217,34 @@ function renderPost(data) {
         `;
     }
 
-    // 圖片區塊（Base64 直接當 src）
-    let imagesHtml = '';
-    if (data.imageBase64s && data.imageBase64s.length > 0) {
-        const imgs = data.imageBase64s.map(b64 =>
-            `<a href="${b64}" target="_blank"><img src="${b64}" class="post-image" loading="lazy" /></a>`
-        ).join('');
-        imagesHtml = `<div class="post-images">${imgs}</div>`;
-    }
-
-    card.innerHTML = `
-        <div class="post-content">${htmlContent}</div>
-        ${previewHtml}
-        ${imagesHtml}
-        <small style="color:#999">${data.createdAt?.toDate().toLocaleString() || '傳送中...'}</small>
-    `;
-    postList.appendChild(card);
+   // 圖片區塊（Base64 直接當 src）
+let imagesHtml = '';
+if (data.imageBase64s && data.imageBase64s.length > 0) {
+    const imgs = data.imageBase64s.map((b64, i) =>
+        `<img src="${b64}" class="post-image" loading="lazy" style="cursor:pointer" data-index="${i}">`
+    ).join('');
+    imagesHtml = `<div class="post-images">${imgs}</div>`;
 }
+
+card.innerHTML = `
+    <div class="post-content">${htmlContent}</div>
+    ${imagesHtml}
+    <small style="color:#999">${data.createdAt?.toDate().toLocaleString() || '傳送中...'}</small>
+`;
+
+// 事件監聽器加在 img 上，避免 Base64 放進 HTML 屬性
+card.querySelectorAll('.post-image').forEach((img, i) => {
+    img.addEventListener('click', () => {
+        const b64 = data.imageBase64s[i];
+        const byteStr = atob(b64.split(',')[1]);
+        const u8 = new Uint8Array(byteStr.length);
+        for (let j = 0; j < byteStr.length; j++) u8[j] = byteStr.charCodeAt(j);
+        const url = URL.createObjectURL(new Blob([u8], { type: 'image/jpeg' }));
+        window.open(url, '_blank');
+    });
+});
+
+postList.appendChild(card);
 
 // ════════════════════════════════════════
 // ── 3. 搜尋邏輯 ──
