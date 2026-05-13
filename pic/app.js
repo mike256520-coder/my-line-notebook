@@ -1,9 +1,9 @@
-// ════════════════════════════════════════
-//damie
-//ANE0N-LZ7HA-9Y4IT-DBKA3-K7NIQ
-// ════════════════════════════════════════
+// ═══════════20260513═圖文/按圖/分頁版═════════════════════
+// damie / ANE0N-LZ7HA-9Y4IT-DBKA3-K7NIQ
+// ══════https://claude.ai/share/aa53b308-a308-4ad6-bfc1-33ad22c00f23══════════════════════════════════
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, query, where, orderBy, onSnapshot,
+         serverTimestamp, limit, startAfter, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyACO9osKdxj8x2-fAwxgUM0YA_zM2uCWwU",
@@ -17,15 +17,14 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const postList = document.getElementById('post-list');
+const PAGE_SIZE = 20; // 每頁幾筆
 
 // ════════════════════════════════════════
 // ── Canvas 壓縮圖片 → Base64 ──
-// 最長邊縮到 800px，JPEG 品質 0.75
 // ════════════════════════════════════════
 function compressImageToBase64(file) {
     return new Promise((resolve, reject) => {
-        const MAX_SIDE = 800;
-        const QUALITY = 0.75;
+        const MAX_SIDE = 800, QUALITY = 0.75;
         const img = new Image();
         const url = URL.createObjectURL(file);
         img.onload = () => {
@@ -36,8 +35,7 @@ function compressImageToBase64(file) {
                 else { width = Math.round(width * MAX_SIDE / height); height = MAX_SIDE; }
             }
             const canvas = document.createElement('canvas');
-            canvas.width = width;
-            canvas.height = height;
+            canvas.width = width; canvas.height = height;
             canvas.getContext('2d').drawImage(img, 0, 0, width, height);
             resolve(canvas.toDataURL('image/jpeg', QUALITY));
         };
@@ -49,13 +47,13 @@ function compressImageToBase64(file) {
 // ════════════════════════════════════════
 // ── 圖片預覽狀態 ──
 // ════════════════════════════════════════
-let pendingImages = []; // { file, objectURL }
-const MAX_IMAGES = 3;   // Firestore 1MB 文件上限，最多 3 張
+let pendingImages = [];
+const MAX_IMAGES = 3;
 
 function addImageFile(file) {
     if (!file || !file.type.startsWith('image/')) return;
     if (pendingImages.length >= MAX_IMAGES) {
-        alert(`最多只能貼 ${MAX_IMAGES} 張圖片（Firestore 文件上限 1MB）`);
+        alert(`最多只能貼 ${MAX_IMAGES} 張圖片`);
         return;
     }
     const objectURL = URL.createObjectURL(file);
@@ -83,50 +81,37 @@ window.removeImage = (index) => {
     renderImagePreviews();
 };
 
-// 🖼 圖片按鈕
-document.getElementById('image-btn').addEventListener('click', () => {
-    document.getElementById('image-input').click();
-});
+document.getElementById('image-btn').addEventListener('click', () => document.getElementById('image-input').click());
 document.getElementById('image-input').addEventListener('change', (e) => {
     Array.from(e.target.files).forEach(addImageFile);
     e.target.value = '';
 });
-
-// Ctrl+V 貼上圖片
 document.getElementById('post-input').addEventListener('paste', (e) => {
-    const items = e.clipboardData?.items;
-    if (!items) return;
-    for (const item of items) {
+    for (const item of e.clipboardData?.items || [])
         if (item.type.startsWith('image/')) addImageFile(item.getAsFile());
-    }
 });
-
-// 拖放圖片
 const postBox = document.querySelector('.post-box');
 postBox.addEventListener('dragover', (e) => { e.preventDefault(); postBox.classList.add('drag-over'); });
 postBox.addEventListener('dragleave', () => postBox.classList.remove('drag-over'));
 postBox.addEventListener('drop', (e) => {
-    e.preventDefault();
-    postBox.classList.remove('drag-over');
+    e.preventDefault(); postBox.classList.remove('drag-over');
     Array.from(e.dataTransfer.files).forEach(addImageFile);
 });
 
 // ════════════════════════════════════════
-// ── 抓取網址預覽 (linkpreview.net) ──
+// ── 抓取網址預覽 ──
 // ════════════════════════════════════════
 async function getLinkPreview(url) {
     const apiKey = 'b8bd272ba6179d524d93939132b959ba';
     try {
         const response = await fetch(`https://api.linkpreview.net/?key=${apiKey}&q=${url}`);
         if (response.ok) return await response.json();
-    } catch (e) {
-        console.warn("預覽抓取失敗", e);
-    }
+    } catch (e) { console.warn("預覽抓取失敗", e); }
     return null;
 }
 
 // ════════════════════════════════════════
-// ── 1. 發佈貼文邏輯 ──
+// ── 1. 發佈貼文 ──
 // ════════════════════════════════════════
 document.getElementById('submit-btn').addEventListener('click', async () => {
     const content = document.getElementById('post-input').value;
@@ -134,31 +119,22 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
 
     const btn = document.getElementById('submit-btn');
     btn.disabled = true;
-
     const tags = content.match(/#([^\s#]+)/g)?.map(t => t.slice(1)) || [];
 
     try {
-        // 偵測網址 → 抓預覽
         let previewData = null;
-        const urlRegex = /(https?:\/\/[^\s]+)/g;
-        const urls = content.match(urlRegex);
-        if (urls && urls.length > 0) {
+        const urls = content.match(/(https?:\/\/[^\s]+)/g);
+        if (urls?.length > 0) {
             btn.textContent = '抓取預覽中...';
             previewData = await getLinkPreview(urls[0]);
         }
 
-        // 壓縮圖片 → Base64
         btn.textContent = '壓縮圖片中...';
-        const imageBase64s = await Promise.all(
-            pendingImages.map(p => compressImageToBase64(p.file))
-        );
+        const imageBase64s = await Promise.all(pendingImages.map(p => compressImageToBase64(p.file)));
 
         btn.textContent = '儲存中...';
         await addDoc(collection(db, "posts"), {
-            content,
-            tags,
-            linkPreview: previewData,
-            imageBase64s,
+            content, tags, linkPreview: previewData, imageBase64s,
             createdAt: serverTimestamp()
         });
 
@@ -166,6 +142,10 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
         pendingImages.forEach(p => URL.revokeObjectURL(p.objectURL));
         pendingImages = [];
         renderImagePreviews();
+
+        // 發佈後重新從頭載入（只載第一頁）
+        resetAndLoad();
+
     } catch (e) {
         alert("發佈失敗: " + e.message);
     } finally {
@@ -175,38 +155,120 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
 });
 
 // ════════════════════════════════════════
-// ── 2. 監聽與渲染貼文 ──
+// ── 2. 分頁載入貼文（取代 onSnapshot）──
 // ════════════════════════════════════════
-let currentUnsubscribe = null;
+let currentFilter = null;
+let lastDoc = null;       // 分頁游標
+let isLoading = false;
+let hasMore = true;
+let currentUnsubscribe = null; // 只用於監聽最新一筆
 
-function loadPosts(filterTag = null) {
-    if (currentUnsubscribe) currentUnsubscribe();
-
-    let q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
-
-    if (filterTag) {
+function buildQuery(afterDoc = null) {
+    let q;
+    if (currentFilter) {
         q = query(collection(db, "posts"),
-                  where("tags", "array-contains", filterTag),
-                  orderBy("createdAt", "desc"));
+            where("tags", "array-contains", currentFilter),
+            orderBy("createdAt", "desc"),
+            limit(PAGE_SIZE));
+    } else {
+        q = query(collection(db, "posts"),
+            orderBy("createdAt", "desc"),
+            limit(PAGE_SIZE));
+    }
+    if (afterDoc) q = query(collection(db, "posts"),
+        ...(currentFilter ? [where("tags", "array-contains", currentFilter)] : []),
+        orderBy("createdAt", "desc"),
+        startAfter(afterDoc),
+        limit(PAGE_SIZE));
+    return q;
+}
+
+// 重設並從頭載入
+function resetAndLoad(filterTag = currentFilter) {
+    currentFilter = filterTag;
+    lastDoc = null;
+    hasMore = true;
+    postList.innerHTML = '';
+    removeLoadMoreBtn();
+
+    // 取消舊的即時監聽
+    if (currentUnsubscribe) { currentUnsubscribe(); currentUnsubscribe = null; }
+
+    // 用 onSnapshot 只監聽第一頁（偵測新貼文）
+    const q = buildQuery();
+    currentUnsubscribe = onSnapshot(q, (snapshot) => {
+        // 只在第一次或有新增時重繪第一頁
+        if (lastDoc === null) {
+            postList.innerHTML = '';
+            snapshot.forEach(doc => renderPost(doc.data()));
+            if (snapshot.docs.length > 0) lastDoc = snapshot.docs[snapshot.docs.length - 1];
+            hasMore = snapshot.docs.length === PAGE_SIZE;
+            if (hasMore) addLoadMoreBtn();
+        } else {
+            // 有新貼文插到最前面
+            snapshot.docChanges().forEach(change => {
+                if (change.type === 'added' && change.newIndex === 0) {
+                    const card = buildCard(change.doc.data());
+                    postList.insertBefore(card, postList.firstChild);
+                }
+            });
+        }
+    });
+
+    // 更新搜尋 UI
+    if (filterTag) {
         document.getElementById('active-filter').classList.remove('hidden');
         document.getElementById('current-tag').innerText = filterTag;
     } else {
         document.getElementById('active-filter').classList.add('hidden');
     }
-
-    currentUnsubscribe = onSnapshot(q, (snapshot) => {
-        postList.innerHTML = '';
-        snapshot.forEach((doc) => renderPost(doc.data()));
-    });
 }
 
-function renderPost(data) {
+// 載入更多（第二頁之後用 getDocs，不用即時監聽）
+async function loadMore() {
+    if (isLoading || !hasMore) return;
+    isLoading = true;
+    const btn = document.getElementById('load-more-btn');
+    if (btn) btn.textContent = '載入中...';
+
+    const q = buildQuery(lastDoc);
+    const snapshot = await getDocs(q);
+
+    snapshot.forEach(doc => renderPost(doc.data()));
+    if (snapshot.docs.length > 0) lastDoc = snapshot.docs[snapshot.docs.length - 1];
+    hasMore = snapshot.docs.length === PAGE_SIZE;
+
+    if (!hasMore) removeLoadMoreBtn();
+    else if (btn) btn.textContent = '載入更多';
+
+    isLoading = false;
+}
+
+function addLoadMoreBtn() {
+    removeLoadMoreBtn();
+    const btn = document.createElement('button');
+    btn.id = 'load-more-btn';
+    btn.textContent = '載入更多';
+    btn.onclick = loadMore;
+    postList.after(btn);
+}
+
+function removeLoadMoreBtn() {
+    document.getElementById('load-more-btn')?.remove();
+}
+
+// ════════════════════════════════════════
+// ── 3. 渲染貼文 ──
+// ════════════════════════════════════════
+function buildCard(data) {
     const card = document.createElement('div');
     card.className = 'post-card';
 
-    let htmlContent = (data.content || '').replace(/#([^\s#]+)/g, '<span class="tag-link" onclick="filterByTag(\'$1\')">#$1</span>');
+    let htmlContent = (data.content || '').replace(
+        /#([^\s#]+)/g,
+        '<span class="tag-link" onclick="filterByTag(\'$1\')">#$1</span>'
+    );
 
-    // 網址預覽卡片
     let previewHtml = '';
     if (data.linkPreview) {
         const lp = data.linkPreview;
@@ -217,54 +279,75 @@ function renderPost(data) {
                     <strong>${lp.title || '連結預覽'}</strong>
                     <p>${lp.description || ''}</p>
                 </div>
-            </a>
-        `;
+            </a>`;
     }
 
-   // 圖片區塊（Base64 直接當 src）
-let imagesHtml = '';
-if (data.imageBase64s && data.imageBase64s.length > 0) {
-    const imgs = data.imageBase64s.map((b64, i) =>
-        `<img src="${b64}" class="post-image" loading="lazy" style="cursor:pointer" data-index="${i}">`
-    ).join('');
-    imagesHtml = `<div class="post-images">${imgs}</div>`;
+    let imagesHtml = '';
+    if (data.imageBase64s?.length > 0) {
+        // 用 data-src 延遲載入，不直接塞 src
+        const imgs = data.imageBase64s.map((b64, i) =>
+            `<img data-src="${b64}" class="post-image lazy" loading="lazy" style="cursor:pointer;background:#eee;min-height:80px" data-index="${i}">`
+        ).join('');
+        imagesHtml = `<div class="post-images">${imgs}</div>`;
+    }
+
+    card.innerHTML = `
+        <div class="post-content">${htmlContent}</div>
+        ${previewHtml}
+        ${imagesHtml}
+        <small style="color:#999">${data.createdAt?.toDate().toLocaleString() || '傳送中...'}</small>
+    `;
+
+    // 圖片點擊開新頁
+    card.querySelectorAll('.post-image').forEach((img, i) => {
+        img.addEventListener('click', () => {
+            const b64 = data.imageBase64s[i];
+            const byteStr = atob(b64.split(',')[1]);
+            const u8 = new Uint8Array(byteStr.length);
+            for (let j = 0; j < byteStr.length; j++) u8[j] = byteStr.charCodeAt(j);
+            const url = URL.createObjectURL(new Blob([u8], { type: 'image/jpeg' }));
+            window.open(url, '_blank');
+        });
+
+        // IntersectionObserver 延遲載入圖片
+        imgObserver.observe(img);
+    });
+
+    return card;
 }
 
-card.innerHTML = `
-    <div class="post-content">${htmlContent}</div>
-    ${previewHtml}
-    ${imagesHtml}
-    <small style="color:#999">${data.createdAt?.toDate().toLocaleString() || '傳送中...'}</small>
-`;
+function renderPost(data) {
+    postList.appendChild(buildCard(data));
+}
 
-// 事件監聽器加在 img 上，避免 Base64 放進 HTML 屬性
-card.querySelectorAll('.post-image').forEach((img, i) => {
-    img.addEventListener('click', () => {
-        const b64 = data.imageBase64s[i];
-        const byteStr = atob(b64.split(',')[1]);
-        const u8 = new Uint8Array(byteStr.length);
-        for (let j = 0; j < byteStr.length; j++) u8[j] = byteStr.charCodeAt(j);
-        const url = URL.createObjectURL(new Blob([u8], { type: 'image/jpeg' }));
-        window.open(url, '_blank');
+// IntersectionObserver：圖片進入畫面才把 data-src 搬到 src
+const imgObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            const img = entry.target;
+            if (img.dataset.src) {
+                img.src = img.dataset.src;
+                delete img.dataset.src;
+                img.classList.remove('lazy');
+            }
+            imgObserver.unobserve(img);
+        }
     });
-});
-
-postList.appendChild(card);
-} // ── renderPost 結束 ──
+}, { rootMargin: '200px' }); // 提前 200px 開始載入
 
 // ════════════════════════════════════════
-// ── 3. 搜尋邏輯 ──
+// ── 4. 搜尋邏輯 ──
 // ════════════════════════════════════════
 document.getElementById('search-btn').addEventListener('click', () => {
     const tag = document.getElementById('search-input').value.replace('#', '').trim();
     tag ? window.filterByTag(tag) : window.clearFilter();
 });
-
 document.getElementById('search-input').addEventListener('keypress', (e) => {
     if (e.key === 'Enter') document.getElementById('search-btn').click();
 });
 
-window.filterByTag = (tag) => loadPosts(tag);
-window.clearFilter = () => loadPosts();
+window.filterByTag = (tag) => resetAndLoad(tag);
+window.clearFilter = () => resetAndLoad(null);
 
-loadPosts();
+// 初始載入
+resetAndLoad();

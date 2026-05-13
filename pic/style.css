@@ -26,7 +26,7 @@ header {
     border-bottom: 8px solid #f4f4f4;
 }
 
-/* 拖放高亮 */
+/* 拖放高亮20260513-圖文按圖分頁版 */
 .post-box.drag-over {
     background: #e8f9e9;
     border: 2px dashed #52d05a;
@@ -236,4 +236,25 @@ textarea {
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+}
+
+/* ── 載入更多按鈕 ── */
+#load-more-btn {
+    display: block;
+    margin: 16px auto 24px;
+    background: #f0f0f0;
+    color: #333;
+    border: 1px solid #ccc;
+    padding: 10px 32px;
+    border-radius: 20px;
+    font-size: 14px;
+    cursor: pointer;
+}
+#load-more-btn:hover { background: #e0e0e0; }
+
+/* ── 圖片延遲載入佔位 ── */
+.post-image.lazy {
+    background: #eee;
+    min-height: 80px;
+    min-width: 80px;
 }
