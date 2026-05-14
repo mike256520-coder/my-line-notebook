@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LINE 文字記事本</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            =txt記事本=.. #待分。#金融。#音樂 #吉他 。#醫健。#水電。#PC。#英文。#歷史 #搜奇 。
+            <div class="search-area">
+                <input type="text" id="search-input" placeholder="搜尋標籤">
+                <button id="search-btn">搜尋</button>
+            </div>
+            <div id="active-filter" class="hidden">
+                正在查看標籤: <span id="current-tag"></span>
+                <button onclick="clearFilter()">清除搜尋</button>
+            </div>
+        </header>
+
+        <section class="post-box">
+            <textarea id="post-input" placeholder="#標籤...FB-嵌入(無截圖)&#10;可貼上圖片（Ctrl+V）或拖放圖片"></textarea>
+
+            <!-- 圖片預覽區 -->
+            <div id="image-preview-container"></div>
+
+            <div class="post-actions">
+                <!-- 隱藏的 file input -->
+                <input type="file" id="image-input" accept="image/*" multiple style="display:none">
+                <button id="image-btn" title="上傳圖片">🖼 圖片</button>
+                <button id="submit-btn">送出</button>
+            </div>
+        </section>
+
+        <main id="post-list">
+            <div class="loading">載入中...</div>
+        </main>
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
