@@ -1,5 +1,18 @@
+// ════https://claude.ai/share/aa53b308-a308-4ad6-bfc1-33ad22c00f23════════════════════════════════════
+//damie
+//ANE0N-LZ7HA-9Y4IT-DBKA3-K7NIQ
+//
+//currentFilter ...........null → 陣列  
+//  buildQuery...........用 currentFilter[0] 查 Firesto  
+//reresetAndLoad..... 第一次載入加前端過濾
+//loadMore...............載入更多也加前端過濾
+//filter UI.................顯示 吉他 + 音樂 格式
+//搜尋邏輯............空格/逗號分隔解析多標籤
+
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, query, where, orderBy, onSnapshot,
+         serverTimestamp, limit, startAfter, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyACO9osKdxj8x2-fAwxgUM0YA_zM2uCWwU",
@@ -13,8 +26,9 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const postList = document.getElementById('post-list');
+const PAGE_SIZE = 20;
 
-// ════════════════════════════════════════
+// ═══════════════有分頁多搜版.js═══════════════
 // ── Canvas 壓縮圖片 → Base64 ──
 // ════════════════════════════════════════
 function compressImageToBase64(file) {
@@ -108,6 +122,7 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
 
     try {
         const imageBase64s = await Promise.all(pendingImages.map(p => compressImageToBase64(p.file)));
+
         btn.textContent = '儲存中...';
         await addDoc(collection(db, "posts"), {
             content, tags, imageBase64s,
@@ -118,6 +133,7 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
         pendingImages.forEach(p => URL.revokeObjectURL(p.objectURL));
         pendingImages = [];
         renderImagePreviews();
+        resetAndLoad();
     } catch (e) {
         alert("發佈失敗: " + e.message);
     } finally {
@@ -127,49 +143,113 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
 });
 
 // ════════════════════════════════════════
-// ── 2. 監聽與渲染貼文 ──
-// 多標籤：用第一個標籤查 Firestore，其餘在前端過濾
+// ── 2. 分頁載入 ──
 // ════════════════════════════════════════
+let currentFilter = [];  // 陣列，支援多標籤
+let lastDoc = null;
+let isLoading = false;
+let hasMore = true;
 let currentUnsubscribe = null;
-let currentTags = []; // 目前篩選的標籤陣列
 
-function loadPosts(filterTags = []) {
-    if (currentUnsubscribe) currentUnsubscribe();
-    currentTags = filterTags;
+function buildQuery(afterDoc = null) {
+    const constraints = [orderBy("createdAt", "desc"), limit(PAGE_SIZE)];
+    if (currentFilter.length > 0) constraints.unshift(where("tags", "array-contains", currentFilter[0]));
+    if (afterDoc) constraints.push(startAfter(afterDoc));
+    return query(collection(db, "posts"), ...constraints);
+}
 
-    let q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
+function resetAndLoad(filterTags = currentFilter) {
+    currentFilter = filterTags;
+    lastDoc = null;
+    hasMore = true;
+    postList.innerHTML = '';
+    removeLoadMoreBtn();
+    if (currentUnsubscribe) { currentUnsubscribe(); currentUnsubscribe = null; }
 
-    if (filterTags.length > 0) {
-        // 用第一個標籤讓 Firestore 縮小範圍
-        q = query(collection(db, "posts"),
-            where("tags", "array-contains", filterTags[0]),
-            orderBy("createdAt", "desc"));
+    const q = buildQuery();
+    currentUnsubscribe = onSnapshot(q, (snapshot) => {
+        if (lastDoc === null) {
+            // 第一次載入
+            postList.innerHTML = '';
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                if (currentFilter.length <= 1 || currentFilter.every(t => (data.tags||[]).includes(t)))
+                    renderPost(data);
+            });
+            if (snapshot.docs.length > 0) lastDoc = snapshot.docs[snapshot.docs.length - 1];
+            hasMore = snapshot.docs.length === PAGE_SIZE;
+            if (hasMore) addLoadMoreBtn();
+        } else {
+            // 只插入新增的貼文到最前面
+            snapshot.docChanges().forEach(change => {
+                if (change.type === 'added' && change.newIndex === 0) {
+                    postList.insertBefore(buildCard(change.doc.data()), postList.firstChild);
+                }
+            });
+        }
+    });
 
+    if (currentFilter.length > 0) {
         document.getElementById('active-filter').classList.remove('hidden');
-        document.getElementById('current-tag').innerText = filterTags.join(' + ');
+        document.getElementById('current-tag').innerText = currentFilter.join(' + ');
     } else {
         document.getElementById('active-filter').classList.add('hidden');
     }
+}
 
-    currentUnsubscribe = onSnapshot(q, (snapshot) => {
-        postList.innerHTML = '';
-        snapshot.forEach((doc) => {
-            const data = doc.data();
-            // 前端再過濾：第2、3個標籤也必須符合
-            if (filterTags.length > 1) {
-                const postTags = data.tags || [];
-                const allMatch = filterTags.every(t => postTags.includes(t));
-                if (!allMatch) return;
-            }
+async function loadMore() {
+    if (isLoading || !hasMore) return;
+    isLoading = true;
+    const btn = document.getElementById('load-more-btn');
+    if (btn) btn.textContent = '載入中...';
+
+    const snapshot = await getDocs(buildQuery(lastDoc));
+    snapshot.forEach(doc => {
+        const data = doc.data();
+        if (currentFilter.length <= 1 || currentFilter.every(t => (data.tags||[]).includes(t)))
             renderPost(data);
-        });
     });
+    if (snapshot.docs.length > 0) lastDoc = snapshot.docs[snapshot.docs.length - 1];
+    hasMore = snapshot.docs.length === PAGE_SIZE;
+
+    if (!hasMore) removeLoadMoreBtn();
+    else if (btn) btn.textContent = '載入更多';
+    isLoading = false;
+}
+
+function addLoadMoreBtn() {
+    removeLoadMoreBtn();
+    const btn = document.createElement('button');
+    btn.id = 'load-more-btn';
+    btn.textContent = '載入更多';
+    btn.onclick = loadMore;
+    postList.after(btn);
+}
+
+function removeLoadMoreBtn() {
+    document.getElementById('load-more-btn')?.remove();
 }
 
 // ════════════════════════════════════════
 // ── 3. 渲染貼文 ──
 // ════════════════════════════════════════
-function renderPost(data) {
+
+// IntersectionObserver：捲到畫面附近才載入圖片
+const imgObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            const img = entry.target;
+            if (img.dataset.src) {
+                img.src = img.dataset.src;
+                delete img.dataset.src;
+                img.classList.remove('lazy');
+            }
+            imgObserver.unobserve(img);
+        }
+    });
+}, { rootMargin: '200px' });
+
+function buildCard(data) {
     const card = document.createElement('div');
     card.className = 'post-card';
 
@@ -181,7 +261,7 @@ function renderPost(data) {
     let imagesHtml = '';
     if (data.imageBase64s?.length > 0) {
         const imgs = data.imageBase64s.map((b64, i) =>
-            `<img src="${b64}" class="post-image" loading="lazy" style="cursor:pointer" data-index="${i}">`
+            `<img data-src="${b64}" class="post-image lazy" loading="lazy" style="cursor:pointer;background:#eee;min-height:80px" data-index="${i}">`
         ).join('');
         imagesHtml = `<div class="post-images">${imgs}</div>`;
     }
@@ -192,6 +272,7 @@ function renderPost(data) {
         <small style="color:#999">${data.createdAt?.toDate().toLocaleString() || '傳送中...'}</small>
     `;
 
+    // 圖片：延遲載入 + 點擊開新頁
     card.querySelectorAll('.post-image').forEach((img, i) => {
         img.addEventListener('click', () => {
             const b64 = data.imageBase64s[i];
@@ -200,23 +281,27 @@ function renderPost(data) {
             for (let j = 0; j < byteStr.length; j++) u8[j] = byteStr.charCodeAt(j);
             window.open(URL.createObjectURL(new Blob([u8], { type: 'image/jpeg' })), '_blank');
         });
+        imgObserver.observe(img);
     });
 
-    postList.appendChild(card);
+    return card;
+}
+
+function renderPost(data) {
+    postList.appendChild(buildCard(data));
 }
 
 // ════════════════════════════════════════
-// ── 4. 搜尋邏輯（支援多標籤）──
-// 輸入方式：空格或逗號分隔，例如：吉他 音樂 / #吉他,#音樂
+// ── 4. 搜尋邏輯 ──
 // ════════════════════════════════════════
 document.getElementById('search-btn').addEventListener('click', () => {
     const raw = document.getElementById('search-input').value;
+    // 空格或逗號分隔，例如：吉他 音樂 / #吉他,#音樂
     const tags = raw.split(/[\s,，]+/)
                     .map(t => t.replace(/#/g, '').trim())
                     .filter(t => t.length > 0);
     tags.length > 0 ? window.filterByTags(tags) : window.clearFilter();
 });
-
 document.getElementById('search-input').addEventListener('keypress', (e) => {
     if (e.key === 'Enter') document.getElementById('search-btn').click();
 });
@@ -224,14 +309,14 @@ document.getElementById('search-input').addEventListener('keypress', (e) => {
 // 貼文內標籤點擊（單一標籤）
 window.filterByTag = (tag) => {
     document.getElementById('search-input').value = tag;
-    window.filterByTags([tag]);
+    resetAndLoad([tag]);
 };
 
 // 多標籤搜尋
-window.filterByTags = (tags) => loadPosts(tags);
+window.filterByTags = (tags) => resetAndLoad(tags);
 window.clearFilter = () => {
     document.getElementById('search-input').value = '';
-    loadPosts([]);
+    resetAndLoad([]);
 };
 
-loadPosts();
+resetAndLoad();
