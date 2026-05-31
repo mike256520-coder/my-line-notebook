@@ -1,839 +1,583 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>圖片 ↔ Base64 轉換器</title>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg: #0d0f14;
-    --surface: #151820;
-    --panel: #1c2030;
-    --border: #2a3045;
-    --accent: #4af0b0;
-    --accent2: #6c8fff;
-    --warn: #ff7b54;
-    --text: #e8eaf0;
-    --muted: #6b7694;
-    --mono: 'JetBrains Mono', monospace;
-    --sans: 'Noto Sans TC', sans-serif;
-  }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>txt記事本 — 備份工具</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f0f2f0;
+            min-height: 100vh;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 32px 16px 64px;
+        }
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--sans);
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
+        .card {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+            padding: 32px 28px;
+            width: 100%;
+            max-width: 520px;
+        }
 
-  /* Grid background */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(var(--border) 1px, transparent 1px),
-      linear-gradient(90deg, var(--border) 1px, transparent 1px);
-    background-size: 48px 48px;
-    opacity: 0.35;
-    pointer-events: none;
-    z-index: 0;
-  }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 28px;
+        }
 
-  .wrap {
-    position: relative;
-    z-index: 1;
-    max-width: 960px;
-    margin: 0 auto;
-    padding: 48px 24px 80px;
-  }
+        .logo-icon {
+            width: 44px;
+            height: 44px;
+            background: #52d05a;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
 
-  header {
-    text-align: center;
-    margin-bottom: 52px;
-  }
+        .logo-text h1 {
+            font-size: 17px;
+            font-weight: 700;
+            color: #1a1a1a;
+            line-height: 1.2;
+        }
 
-  .logo {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 18px;
-  }
+        .logo-text p {
+            font-size: 13px;
+            color: #888;
+            margin-top: 2px;
+        }
 
-  .logo-icon {
-    width: 38px; height: 38px;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 20px;
-  }
+        .section-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #888;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
 
-  h1 {
-    font-family: var(--mono);
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.2em;
-    color: var(--accent);
-    text-transform: uppercase;
-  }
+        .date-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
 
-  .subtitle {
-    font-size: 13px;
-    color: var(--muted);
-    letter-spacing: 0.06em;
-    margin-top: 6px;
-  }
+        .field label {
+            display: block;
+            font-size: 13px;
+            color: #555;
+            margin-bottom: 6px;
+        }
 
-  /* Tabs */
-  .tabs {
-    display: flex;
-    gap: 2px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 4px;
-    margin-bottom: 28px;
-    width: fit-content;
-  }
+        .field input[type="date"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1.5px solid #ddd;
+            border-radius: 10px;
+            font-size: 15px;
+            color: #1a1a1a;
+            background: #fafafa;
+            outline: none;
+            transition: border-color 0.15s;
+            appearance: none;
+            -webkit-appearance: none;
+        }
 
-  .tab {
-    font-family: var(--mono);
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    padding: 9px 22px;
-    border-radius: 8px;
-    cursor: pointer;
-    border: none;
-    background: transparent;
-    color: var(--muted);
-    transition: all 0.2s;
-    text-transform: uppercase;
-  }
+        .field input[type="date"]:focus {
+            border-color: #52d05a;
+            background: #fff;
+        }
 
-  .tab.active {
-    background: var(--panel);
-    color: var(--text);
-    box-shadow: 0 0 0 1px var(--border);
-  }
+        .quick-btns {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
 
-  .tab:hover:not(.active) { color: var(--text); }
+        .quick-btn {
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1.5px solid #ddd;
+            background: #fff;
+            color: #444;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
 
-  /* Panels */
-  .panel { display: none; animation: fadeIn 0.25s ease; }
-  .panel.active { display: block; }
+        .quick-btn:hover {
+            border-color: #52d05a;
+            color: #2a8a30;
+            background: #f0faf0;
+        }
 
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+        .divider {
+            border: none;
+            border-top: 1px solid #eee;
+            margin: 20px 0;
+        }
 
-  /* Drop zone */
-  .drop-zone {
-    border: 1.5px dashed var(--border);
-    border-radius: 16px;
-    background: var(--surface);
-    padding: 56px 32px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.25s;
-    position: relative;
-  }
+        .format-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
 
-  .drop-zone:hover, .drop-zone.drag-over {
-    border-color: var(--accent);
-    background: rgba(74,240,176,0.04);
-  }
+        .format-option {
+            position: relative;
+        }
 
-  .drop-zone input[type="file"] {
-    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
-  }
+        .format-option input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+        }
 
-  .drop-icon { font-size: 40px; margin-bottom: 12px; }
+        .format-option label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: 12px 8px;
+            border: 1.5px solid #ddd;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 13px;
+            color: #555;
+            background: #fafafa;
+            transition: all 0.15s;
+            text-align: center;
+        }
 
-  .drop-title {
-    font-family: var(--mono);
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text);
-    margin-bottom: 6px;
-  }
+        .format-option label .fmt-icon {
+            font-size: 24px;
+        }
 
-  .drop-sub { font-size: 12px; color: var(--muted); }
+        .format-option input[type="radio"]:checked + label {
+            border-color: #52d05a;
+            background: #f0faf0;
+            color: #2a8a30;
+            font-weight: 600;
+        }
 
-  /* Image preview */
-  .img-preview-box {
-    display: none;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    overflow: hidden;
-  }
+        .format-option label:hover {
+            border-color: #52d05a;
+            background: #f8fdf8;
+        }
 
-  .img-preview-box.show { display: block; animation: fadeIn 0.3s ease; }
+        .options-row {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
 
-  .preview-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 20px;
-    border-bottom: 1px solid var(--border);
-  }
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
 
-  .preview-meta {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--muted);
-  }
+        .toggle-row span {
+            font-size: 14px;
+            color: #444;
+        }
 
-  .preview-meta span { color: var(--accent); }
+        .toggle {
+            position: relative;
+            width: 42px;
+            height: 24px;
+        }
 
-  .img-frame {
-    background: repeating-conic-gradient(#1e2335 0% 25%, #161a28 0% 50%) 0 0 / 20px 20px;
-    display: flex; align-items: center; justify-content: center;
-    max-height: 280px;
-    overflow: hidden;
-    padding: 20px;
-  }
+        .toggle input { display: none; }
 
-  .img-frame img {
-    max-width: 100%;
-    max-height: 240px;
-    object-fit: contain;
-    border-radius: 6px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-  }
+        .toggle-slider {
+            position: absolute;
+            inset: 0;
+            background: #ddd;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
 
-  /* Output area */
-  .output-section {
-    margin-top: 20px;
-  }
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            background: #fff;
+            border-radius: 50%;
+            left: 3px;
+            top: 3px;
+            transition: transform 0.2s;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+        }
 
-  .section-label {
-    font-family: var(--mono);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+        .toggle input:checked + .toggle-slider {
+            background: #52d05a;
+        }
 
-  .section-label::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--border);
-  }
+        .toggle input:checked + .toggle-slider::before {
+            transform: translateX(18px);
+        }
 
-  .options-row {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 14px;
-    flex-wrap: wrap;
-  }
+        .backup-btn {
+            width: 100%;
+            padding: 14px;
+            background: #52d05a;
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.15s, transform 0.1s;
+        }
 
-  .opt-btn {
-    font-family: var(--mono);
-    font-size: 11px;
-    font-weight: 600;
-    padding: 6px 14px;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    background: var(--panel);
-    color: var(--muted);
-    cursor: pointer;
-    transition: all 0.15s;
-    letter-spacing: 0.06em;
-  }
+        .backup-btn:hover { background: #3db544; }
+        .backup-btn:active { transform: scale(0.98); }
+        .backup-btn:disabled { background: #aaa; cursor: not-allowed; }
 
-  .opt-btn:hover, .opt-btn.active {
-    border-color: var(--accent);
-    color: var(--accent);
-  }
+        /* Status / log */
+        #status-box {
+            display: none;
+            margin-top: 20px;
+            padding: 14px 16px;
+            border-radius: 10px;
+            background: #f5f5f5;
+            font-size: 13px;
+            color: #444;
+            line-height: 1.7;
+        }
 
-  textarea {
-    width: 100%;
-    height: 160px;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 11.5px;
-    line-height: 1.7;
-    padding: 16px;
-    resize: vertical;
-    outline: none;
-    transition: border-color 0.2s;
-  }
+        #status-box.success { background: #edfaf0; color: #1f7a2b; }
+        #status-box.error   { background: #fdeaea; color: #a32020; }
+        #status-box.running { background: #edf5ff; color: #1a4a9b; }
 
-  textarea:focus { border-color: var(--accent2); }
+        .progress-bar {
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            margin-top: 10px;
+            overflow: hidden;
+            display: none;
+        }
 
-  .action-row {
-    display: flex;
-    gap: 10px;
-    margin-top: 14px;
-    flex-wrap: wrap;
-  }
+        .progress-fill {
+            height: 100%;
+            background: #52d05a;
+            border-radius: 4px;
+            transition: width 0.3s;
+            width: 0%;
+        }
 
-  .btn {
-    font-family: var(--mono);
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    padding: 11px 24px;
-    border-radius: 8px;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-transform: uppercase;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+        .stat-row {
+            display: flex;
+            gap: 16px;
+            margin-top: 14px;
+            flex-wrap: wrap;
+        }
 
-  .btn-primary {
-    background: var(--accent);
-    color: #0d1a14;
-  }
+        .stat {
+            flex: 1;
+            min-width: 100px;
+            background: #fff;
+            border: 1px solid #e8e8e8;
+            border-radius: 10px;
+            padding: 10px 12px;
+            text-align: center;
+        }
 
-  .btn-primary:hover { background: #6fffc8; transform: translateY(-1px); }
-  .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+        .stat .num { font-size: 22px; font-weight: 700; color: #1a1a1a; }
+        .stat .lbl { font-size: 11px; color: #999; margin-top: 2px; }
 
-  .btn-secondary {
-    background: var(--panel);
-    color: var(--text);
-    border: 1px solid var(--border);
-  }
+        .download-btn {
+            display: none;
+            margin-top: 14px;
+            width: 100%;
+            padding: 12px;
+            background: #1a1a1a;
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
 
-  .btn-secondary:hover { border-color: var(--accent2); color: var(--accent2); }
-
-  .btn-warn {
-    background: transparent;
-    color: var(--warn);
-    border: 1px solid var(--warn);
-  }
-
-  .btn-warn:hover { background: rgba(255,123,84,0.1); }
-
-  /* Stats bar */
-  .stats-bar {
-    display: flex;
-    gap: 20px;
-    padding: 12px 16px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    margin-top: 14px;
-    flex-wrap: wrap;
-  }
-
-  .stat {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .stat-label {
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--muted);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-  }
-
-  .stat-value {
-    font-family: var(--mono);
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--accent);
-  }
-
-  /* Toast */
-  .toast {
-    position: fixed;
-    bottom: 32px;
-    left: 50%;
-    transform: translateX(-50%) translateY(80px);
-    background: var(--panel);
-    border: 1px solid var(--accent);
-    color: var(--accent);
-    font-family: var(--mono);
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    padding: 12px 24px;
-    border-radius: 8px;
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    z-index: 100;
-    white-space: nowrap;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-  }
-
-  .toast.show { transform: translateX(-50%) translateY(0); }
-  .toast.error { border-color: var(--warn); color: var(--warn); }
-
-  /* Progress */
-  .progress {
-    height: 2px;
-    background: var(--border);
-    border-radius: 1px;
-    margin-top: 12px;
-    overflow: hidden;
-    display: none;
-  }
-
-  .progress.show { display: block; }
-
-  .progress-bar {
-    height: 100%;
-    background: linear-gradient(90deg, var(--accent), var(--accent2));
-    width: 0%;
-    transition: width 0.3s ease;
-    border-radius: 1px;
-  }
-
-  /* Read panel - decoded image */
-  .decoded-frame {
-    background: repeating-conic-gradient(#1e2335 0% 25%, #161a28 0% 50%) 0 0 / 20px 20px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 200px;
-    padding: 24px;
-    margin-top: 14px;
-  }
-
-  .decoded-placeholder {
-    text-align: center;
-    color: var(--muted);
-  }
-
-  .decoded-placeholder .ph-icon { font-size: 36px; margin-bottom: 8px; }
-  .decoded-placeholder p { font-size: 12px; font-family: var(--mono); }
-
-  .decoded-frame img {
-    max-width: 100%;
-    max-height: 360px;
-    object-fit: contain;
-    border-radius: 6px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-    display: none;
-  }
-
-  /* Format selector */
-  .format-group {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 14px;
-  }
-
-  .format-label {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--muted);
-    white-space: nowrap;
-  }
-
-  select {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 11px;
-    padding: 6px 10px;
-    outline: none;
-    cursor: pointer;
-  }
-
-  select:focus { border-color: var(--accent2); }
-
-  @media (max-width: 600px) {
-    .wrap { padding: 28px 16px 60px; }
-    .tab { padding: 8px 14px; font-size: 11px; }
-  }
-</style>
+        .download-btn:hover { background: #333; }
+    </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
+
+<div class="card">
     <div class="logo">
-      <div class="logo-icon">🔄</div>
-    </div>
-    <h1>Image ↔ Base64 Converter</h1>
-    <p class="subtitle">圖片轉文字 &nbsp;/&nbsp; 文字讀圖片</p>
-  </header>
-
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('encode')">📷 圖片 → 文字</button>
-    <button class="tab" onclick="switchTab('decode')">📄 文字 → 圖片</button>
-  </div>
-
-  <!-- Encode Panel -->
-  <div class="panel active" id="panel-encode">
-    <div class="drop-zone" id="dropZone">
-      <input type="file" id="fileInput" accept="image/*" onchange="handleFile(this.files[0])">
-      <div class="drop-icon">🖼️</div>
-      <div class="drop-title">拖曳圖片到這裡，或點擊選擇</div>
-      <div class="drop-sub">支援 JPG、PNG、GIF、WEBP、SVG、BMP 等格式</div>
-    </div>
-
-    <div class="img-preview-box" id="imgPreviewBox">
-      <div class="preview-header">
-        <div class="preview-meta">檔案：<span id="metaName">—</span></div>
-        <div class="preview-meta">大小：<span id="metaSize">—</span></div>
-        <div class="preview-meta">尺寸：<span id="metaDim">—</span></div>
-      </div>
-      <div class="img-frame">
-        <img id="previewImg" src="" alt="preview">
-      </div>
-    </div>
-
-    <div class="output-section" id="outputSection" style="display:none">
-      <div class="section-label">輸出設定</div>
-      <div style="display:flex; gap:14px; flex-wrap:wrap; margin-bottom:14px; align-items:center">
-        <div class="format-group">
-          <span class="format-label">格式</span>
-          <select id="outputFormat">
-            <option value="dataurl">完整 Data URL</option>
-            <option value="base64only">純 Base64（不含前綴）</option>
-            <option value="txt">存成 .txt 格式</option>
-          </select>
+        <div class="logo-icon">📋</div>
+        <div class="logo-text">
+            <h1>txt記事本 備份工具</h1>
+            <p>依日期範圍匯出 Firestore 資料</p>
         </div>
-        <div class="format-group">
-          <span class="format-label">品質（JPG）</span>
-          <select id="quality">
-            <option value="1">最高 100%</option>
-            <option value="0.9">高 90%</option>
-            <option value="0.75" selected>標準 75%</option>
-            <option value="0.5">低 50%</option>
-          </select>
+    </div>
+
+    <div class="section-label">日期範圍</div>
+    <div class="date-row">
+        <div class="field">
+            <label for="date-from">起始日期</label>
+            <input type="date" id="date-from">
         </div>
-      </div>
-
-      <div class="section-label">Base64 輸出</div>
-      <div class="progress" id="progress"><div class="progress-bar" id="progressBar"></div></div>
-      <textarea id="outputText" placeholder="Base64 字串將顯示在這裡..." readonly></textarea>
-
-      <div class="stats-bar" id="statsBar" style="display:none">
-        <div class="stat"><div class="stat-label">原始大小</div><div class="stat-value" id="statOrig">—</div></div>
-        <div class="stat"><div class="stat-label">Base64 大小</div><div class="stat-value" id="statB64">—</div></div>
-        <div class="stat"><div class="stat-label">膨脹率</div><div class="stat-value" id="statRatio">—</div></div>
-        <div class="stat"><div class="stat-label">字元數</div><div class="stat-value" id="statChars">—</div></div>
-      </div>
-
-      <div class="action-row">
-        <button class="btn btn-primary" id="btnGenerate" onclick="generateBase64()">⚡ 產生 Base64</button>
-        <button class="btn btn-secondary" onclick="copyOutput()">📋 複製</button>
-        <button class="btn btn-secondary" onclick="downloadTxt()">💾 下載 .txt</button>
-        <button class="btn btn-warn" onclick="resetEncoder()">✕ 清除</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Decode Panel -->
-  <div class="panel" id="panel-decode">
-    <div class="section-label">貼入或上傳 Base64 文字</div>
-
-    <div style="display:flex; gap:10px; margin-bottom:10px; flex-wrap:wrap">
-      <label style="position:relative; overflow:hidden;">
-        <button class="btn btn-secondary" onclick="this.parentElement.querySelector('input').click()" style="pointer-events:none">📂 載入 .txt 檔</button>
-        <input type="file" accept=".txt,.b64,text/*" style="position:absolute;inset:0;opacity:0;cursor:pointer" onchange="loadTxtFile(this)">
-      </label>
-      <button class="btn btn-secondary" onclick="pasteTxtFromClipboard()">📋 從剪貼簿貼入</button>
-      <button class="btn btn-secondary" onclick="clearDecoder()">✕ 清除</button>
+        <div class="field">
+            <label for="date-to">結束日期</label>
+            <input type="date" id="date-to">
+        </div>
     </div>
 
-    <textarea id="decodeInput" placeholder="在這裡貼入 Base64 字串或 Data URL&#10;&#10;例如：&#10;data:image/png;base64,iVBORw0KGgo...&#10;或純 Base64：iVBORw0KGgo..." oninput="onDecodeInput()"></textarea>
-
-    <div style="display:flex; gap:10px; margin-top:12px; align-items:center; flex-wrap:wrap">
-      <button class="btn btn-primary" onclick="decodeBase64()">🔍 解碼顯示圖片</button>
-      <div class="format-group" style="margin:0">
-        <span class="format-label">另存格式</span>
-        <select id="saveFormat">
-          <option value="png">PNG</option>
-          <option value="jpeg">JPEG</option>
-          <option value="webp">WEBP</option>
-        </select>
-      </div>
-      <button class="btn btn-secondary" id="btnSaveImg" onclick="saveDecodedImage()" disabled>💾 下載圖片</button>
+    <div class="quick-btns">
+        <button class="quick-btn" onclick="setRange(7)">最近 7 天</button>
+        <button class="quick-btn" onclick="setRange(30)">最近 30 天</button>
+        <button class="quick-btn" onclick="setRange(90)">最近 3 個月</button>
+        <button class="quick-btn" onclick="setRange(365)">最近 1 年</button>
+        <button class="quick-btn" onclick="setAll()">全部資料</button>
     </div>
 
-    <div class="decoded-frame" id="decodedFrame">
-      <div class="decoded-placeholder" id="decodePlaceholder">
-        <div class="ph-icon">🔎</div>
-        <p>貼入 Base64 後點擊「解碼顯示圖片」</p>
-      </div>
-      <img id="decodedImg" src="" alt="decoded image">
+    <hr class="divider">
+
+    <div class="section-label">匯出格式</div>
+    <div class="format-row">
+        <div class="format-option">
+            <input type="radio" name="fmt" id="fmt-json" value="json" checked>
+            <label for="fmt-json">
+                <span class="fmt-icon">{ }</span>
+                JSON
+            </label>
+        </div>
+        <div class="format-option">
+            <input type="radio" name="fmt" id="fmt-csv" value="csv">
+            <label for="fmt-csv">
+                <span class="fmt-icon">📊</span>
+                CSV
+            </label>
+        </div>
+        <div class="format-option">
+            <input type="radio" name="fmt" id="fmt-txt" value="txt">
+            <label for="fmt-txt">
+                <span class="fmt-icon">📄</span>
+                TXT
+            </label>
+        </div>
     </div>
 
-    <div class="stats-bar" id="decodeStats" style="display:none">
-      <div class="stat"><div class="stat-label">字串長度</div><div class="stat-value" id="dStatLen">—</div></div>
-      <div class="stat"><div class="stat-label">估算大小</div><div class="stat-value" id="dStatSize">—</div></div>
-      <div class="stat"><div class="stat-label">偵測類型</div><div class="stat-value" id="dStatType">—</div></div>
-      <div class="stat"><div class="stat-label">尺寸</div><div class="stat-value" id="dStatDim">—</div></div>
+    <div class="section-label">選項</div>
+    <div class="options-row">
+        <div class="toggle-row">
+            <span>包含圖片（Base64）</span>
+            <label class="toggle">
+                <input type="checkbox" id="opt-images" checked>
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        <div class="toggle-row">
+            <span>僅匯出含標籤的貼文</span>
+            <label class="toggle">
+                <input type="checkbox" id="opt-tagged">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
     </div>
-  </div>
+
+    <button class="backup-btn" id="backup-btn" onclick="startBackup()">🔄 開始備份</button>
+
+    <div id="status-box"></div>
+    <div class="progress-bar" id="progress-bar">
+        <div class="progress-fill" id="progress-fill"></div>
+    </div>
+    <div class="stat-row" id="stat-row" style="display:none"></div>
+    <button class="download-btn" id="download-btn">⬇ 下載備份檔案</button>
 </div>
 
-<div class="toast" id="toast"></div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, query, where, orderBy, getDocs, Timestamp }
+    from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-<script>
-  let currentFile = null;
-  let currentDataUrl = null;
-  let decodedDataUrl = null;
+const firebaseConfig = {
+    apiKey: "AIzaSyACO9osKdxj8x2-fAwxgUM0YA_zM2uCWwU",
+    authDomain: "line-note-9be19.firebaseapp.com",
+    projectId: "line-note-9be19",
+    storageBucket: "line-note-9be19.firebasestorage.app",
+    messagingSenderId: "186753935423",
+    appId: "1:186753935423:web:62a5d9cdf6a66eb8a2f08a"
+};
 
-  // ── Tab ─────────────────────────────────────────
-  function switchTab(id) {
-    document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', ['encode','decode'][i] === id));
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    document.getElementById('panel-' + id).classList.add('active');
-  }
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
 
-  // ── Drag & Drop ─────────────────────────────────
-  const dz = document.getElementById('dropZone');
-  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
-  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
-  dz.addEventListener('drop', e => {
-    e.preventDefault();
-    dz.classList.remove('drag-over');
-    const f = e.dataTransfer.files[0];
-    if (f && f.type.startsWith('image/')) handleFile(f);
-    else showToast('請拖入圖片檔案', true);
-  });
+// ── 快速日期設定 ──────────────────────────
+window.setRange = (days) => {
+    const to   = new Date();
+    const from = new Date(Date.now() - days * 86400000);
+    document.getElementById('date-to').value   = toDateInput(to);
+    document.getElementById('date-from').value = toDateInput(from);
+};
 
-  // ── Handle file ──────────────────────────────────
-  function handleFile(file) {
-    if (!file || !file.type.startsWith('image/')) return showToast('不支援的檔案格式', true);
-    currentFile = file;
-    const reader = new FileReader();
-    reader.onload = e => {
-      const url = e.target.result;
-      const img = document.getElementById('previewImg');
-      img.src = url;
-      img.onload = () => {
-        document.getElementById('metaDim').textContent = img.naturalWidth + ' × ' + img.naturalHeight;
-      };
-      document.getElementById('metaName').textContent = file.name;
-      document.getElementById('metaSize').textContent = formatBytes(file.size);
-      document.getElementById('imgPreviewBox').classList.add('show');
-      document.getElementById('outputSection').style.display = 'block';
-      document.getElementById('outputText').value = '';
-      document.getElementById('statsBar').style.display = 'none';
-      currentDataUrl = url;
-    };
-    reader.readAsDataURL(file);
-    dz.style.display = 'none';
-  }
+window.setAll = () => {
+    document.getElementById('date-from').value = '';
+    document.getElementById('date-to').value   = '';
+};
 
-  // ── Generate Base64 ──────────────────────────────
-  function generateBase64() {
-    if (!currentFile) return showToast('請先選擇圖片', true);
-    const format = document.getElementById('outputFormat').value;
-    const quality = parseFloat(document.getElementById('quality').value);
+function toDateInput(d) {
+    return d.toISOString().split('T')[0];
+}
 
-    // Show progress
-    const prog = document.getElementById('progress');
-    const bar = document.getElementById('progressBar');
-    prog.classList.add('show');
-    bar.style.width = '30%';
+// ── 預設：最近 30 天 ──────────────────────
+setRange(30);
 
-    setTimeout(() => {
-      bar.style.width = '70%';
-      setTimeout(() => {
-        let result = currentDataUrl;
-        if (format === 'base64only') {
-          result = result.split(',')[1];
-        }
-        bar.style.width = '100%';
-        setTimeout(() => { prog.classList.remove('show'); bar.style.width = '0%'; }, 400);
+// ── 主備份邏輯 ────────────────────────────
+window.startBackup = async () => {
+    const btn     = document.getElementById('backup-btn');
+    const box     = document.getElementById('status-box');
+    const dlBtn   = document.getElementById('download-btn');
+    const statRow = document.getElementById('stat-row');
+    const bar     = document.getElementById('progress-bar');
+    const fill    = document.getElementById('progress-fill');
 
-        document.getElementById('outputText').value = result;
+    const fromVal = document.getElementById('date-from').value;
+    const toVal   = document.getElementById('date-to').value;
+    const fmt     = document.querySelector('input[name="fmt"]:checked').value;
+    const withImg = document.getElementById('opt-images').checked;
+    const tagOnly = document.getElementById('opt-tagged').checked;
 
-        // Stats
-        const origSize = currentFile.size;
-        const b64Size = result.length;
-        const ratio = ((b64Size / origSize) * 100).toFixed(1);
-        document.getElementById('statOrig').textContent = formatBytes(origSize);
-        document.getElementById('statB64').textContent = formatBytes(b64Size);
-        document.getElementById('statRatio').textContent = ratio + '%';
-        document.getElementById('statChars').textContent = b64Size.toLocaleString();
-        document.getElementById('statsBar').style.display = 'flex';
+    btn.disabled = true;
+    dlBtn.style.display = 'none';
+    statRow.style.display = 'none';
+    bar.style.display = 'block';
+    fill.style.width  = '10%';
+    box.style.display = 'block';
+    box.className = 'running';
+    box.textContent = '正在連線到 Firestore…';
 
-        showToast('✓ Base64 產生完成');
-      }, 200);
-    }, 100);
-  }
-
-  // ── Copy ─────────────────────────────────────────
-  function copyOutput() {
-    const txt = document.getElementById('outputText').value;
-    if (!txt) return showToast('沒有內容可複製', true);
-    navigator.clipboard.writeText(txt).then(() => showToast('✓ 已複製到剪貼簿')).catch(() => {
-      document.getElementById('outputText').select();
-      document.execCommand('copy');
-      showToast('✓ 已複製');
-    });
-  }
-
-  // ── Download txt ─────────────────────────────────
-  function downloadTxt() {
-    const txt = document.getElementById('outputText').value;
-    if (!txt) { generateBase64(); setTimeout(downloadTxt, 500); return; }
-    const baseName = (currentFile?.name || 'image').replace(/\.[^.]+$/, '');
-    downloadText(txt, baseName + '_base64.txt');
-    showToast('✓ 已下載 .txt 檔');
-  }
-
-  function downloadText(content, filename) {
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([content], { type: 'text/plain' }));
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }
-
-  function resetEncoder() {
-    currentFile = null; currentDataUrl = null;
-    document.getElementById('fileInput').value = '';
-    document.getElementById('imgPreviewBox').classList.remove('show');
-    document.getElementById('outputSection').style.display = 'none';
-    document.getElementById('outputText').value = '';
-    document.getElementById('statsBar').style.display = 'none';
-    dz.style.display = 'block';
-  }
-
-  // ── Decode Panel ─────────────────────────────────
-  function onDecodeInput() {
-    document.getElementById('btnSaveImg').disabled = true;
-    document.getElementById('decodedImg').style.display = 'none';
-    document.getElementById('decodePlaceholder').style.display = 'block';
-    document.getElementById('decodeStats').style.display = 'none';
-    decodedDataUrl = null;
-  }
-
-  function loadTxtFile(input) {
-    const file = input.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = e => {
-      document.getElementById('decodeInput').value = e.target.result.trim();
-      showToast('✓ 已載入 ' + file.name);
-    };
-    reader.readAsText(file);
-    input.value = '';
-  }
-
-  async function pasteTxtFromClipboard() {
     try {
-      const text = await navigator.clipboard.readText();
-      document.getElementById('decodeInput').value = text.trim();
-      showToast('✓ 已從剪貼簿貼入');
-    } catch {
-      showToast('無法存取剪貼簿，請手動貼上', true);
+        const constraints = [orderBy("createdAt", "desc")];
+
+        if (fromVal) {
+            const from = new Date(fromVal + 'T00:00:00');
+            constraints.push(where("createdAt", ">=", Timestamp.fromDate(from)));
+        }
+        if (toVal) {
+            const to = new Date(toVal + 'T23:59:59');
+            constraints.push(where("createdAt", "<=", Timestamp.fromDate(to)));
+        }
+
+        const q  = query(collection(db, "posts"), ...constraints);
+        fill.style.width = '40%';
+        box.textContent  = '讀取資料中…';
+
+        const snapshot = await getDocs(q);
+        fill.style.width = '75%';
+
+        let docs = snapshot.docs.map(d => {
+            const data = d.data();
+            return {
+                id:          d.id,
+                content:     data.content || '',
+                tags:        data.tags || [],
+                imageBase64s: withImg ? (data.imageBase64s || []) : (data.imageBase64s?.length ? [`(${data.imageBase64s.length} 張圖片已省略)`] : []),
+                createdAt:   data.createdAt?.toDate().toLocaleString('zh-TW') || ''
+            };
+        });
+
+        if (tagOnly) docs = docs.filter(d => d.tags.length > 0);
+
+        fill.style.width = '90%';
+        box.textContent  = '產生檔案中…';
+
+        const totalImages = docs.reduce((sum, d) => {
+            if (!withImg) return sum;
+            const orig = snapshot.docs.find(s => s.id === d.id)?.data();
+            return sum + (orig?.imageBase64s?.length || 0);
+        }, 0);
+
+        let blob, filename;
+        const dateTag = fromVal || toVal
+            ? `${fromVal || 'all'}_to_${toVal || 'all'}`
+            : 'all';
+
+        if (fmt === 'json') {
+            blob     = new Blob([JSON.stringify(docs, null, 2)], { type: 'application/json' });
+            filename = `backup_${dateTag}.json`;
+        } else if (fmt === 'csv') {
+            const header = ['id', 'createdAt', 'tags', 'content', withImg ? 'imageCount' : ''].filter(Boolean);
+            const rows   = docs.map(d => [
+                d.id,
+                d.createdAt,
+                d.tags.join('|'),
+                `"${(d.content || '').replace(/"/g,'""')}"`,
+                ...(withImg ? [d.imageBase64s.length] : [])
+            ]);
+            const csv = [header.join(','), ...rows.map(r => r.join(','))].join('\n');
+            blob     = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+            filename = `backup_${dateTag}.csv`;
+        } else {
+            const lines = docs.map(d =>
+`━━━━━━━━━━━━━━━━━━━━━━
+🕐 ${d.createdAt}
+🏷  ${d.tags.map(t => '#'+t).join(' ') || '（無標籤）'}
+
+${d.content}
+${d.imageBase64s.length ? `\n📷 圖片：${d.imageBase64s.length} 張` : ''}`
+            );
+            blob     = new Blob([lines.join('\n\n')], { type: 'text/plain;charset=utf-8' });
+            filename = `backup_${dateTag}.txt`;
+        }
+
+        const url = URL.createObjectURL(blob);
+        dlBtn.style.display = 'block';
+        dlBtn.onclick = () => {
+            const a = document.createElement('a');
+            a.href     = url;
+            a.download = filename;
+            a.click();
+        };
+        dlBtn.textContent = `⬇ 下載 ${filename}`;
+
+        fill.style.width = '100%';
+        box.className    = 'success';
+        box.textContent  = `✅ 備份完成！共 ${docs.length} 篇貼文`;
+
+        statRow.style.display = 'flex';
+        statRow.innerHTML = `
+            <div class="stat"><div class="num">${docs.length}</div><div class="lbl">貼文數量</div></div>
+            <div class="stat"><div class="num">${docs.reduce((s,d)=>s+d.tags.length,0)}</div><div class="lbl">標籤總數</div></div>
+            <div class="stat"><div class="num">${(blob.size/1024).toFixed(1)} KB</div><div class="lbl">檔案大小</div></div>
+        `;
+
+        if (docs.length === 0) {
+            box.textContent = '⚠️ 該日期範圍內沒有資料';
+            box.className   = '';
+        }
+
+    } catch (e) {
+        fill.style.width  = '100%';
+        box.className     = 'error';
+        box.textContent   = '❌ 備份失敗：' + e.message;
+        console.error(e);
+    } finally {
+        btn.disabled = false;
     }
-  }
-
-  function clearDecoder() {
-    document.getElementById('decodeInput').value = '';
-    document.getElementById('decodedImg').style.display = 'none';
-    document.getElementById('decodePlaceholder').style.display = 'block';
-    document.getElementById('decodeStats').style.display = 'none';
-    document.getElementById('btnSaveImg').disabled = true;
-    decodedDataUrl = null;
-  }
-
-  function decodeBase64() {
-    let raw = document.getElementById('decodeInput').value.trim();
-    if (!raw) return showToast('請先輸入 Base64 字串', true);
-
-    // Auto-detect format
-    let dataUrl = raw;
-    let mimeType = 'image/png';
-
-    if (!raw.startsWith('data:')) {
-      // Pure base64 — try to detect type from first bytes
-      try {
-        const bytes = atob(raw.substring(0, 16));
-        if (bytes.startsWith('\xFF\xD8')) mimeType = 'image/jpeg';
-        else if (bytes.startsWith('\x89PNG')) mimeType = 'image/png';
-        else if (bytes.startsWith('GIF')) mimeType = 'image/gif';
-        else if (bytes.startsWith('RIFF')) mimeType = 'image/webp';
-      } catch {}
-      dataUrl = `data:${mimeType};base64,${raw}`;
-    } else {
-      mimeType = raw.match(/data:([^;]+)/)?.[1] || 'image/png';
-    }
-
-    const img = document.getElementById('decodedImg');
-    img.onload = () => {
-      document.getElementById('decodePlaceholder').style.display = 'none';
-      img.style.display = 'block';
-      document.getElementById('btnSaveImg').disabled = false;
-      decodedDataUrl = dataUrl;
-
-      // Stats
-      const b64 = dataUrl.split(',')[1] || raw;
-      const estBytes = Math.floor(b64.length * 3 / 4);
-      document.getElementById('dStatLen').textContent = raw.length.toLocaleString();
-      document.getElementById('dStatSize').textContent = formatBytes(estBytes);
-      document.getElementById('dStatType').textContent = mimeType.replace('image/', '').toUpperCase();
-      document.getElementById('dStatDim').textContent = img.naturalWidth + ' × ' + img.naturalHeight;
-      document.getElementById('decodeStats').style.display = 'flex';
-
-      showToast('✓ 圖片解碼成功');
-    };
-    img.onerror = () => showToast('解碼失敗：格式不正確或字串有誤', true);
-    img.src = dataUrl;
-  }
-
-  function saveDecodedImage() {
-    if (!decodedDataUrl) return;
-    const fmt = document.getElementById('saveFormat').value;
-
-    if (fmt === 'png' || decodedDataUrl.includes(`image/${fmt}`)) {
-      const a = document.createElement('a');
-      a.href = decodedDataUrl;
-      a.download = `decoded_image.${fmt}`;
-      a.click();
-    } else {
-      // Convert via canvas
-      const img = document.getElementById('decodedImg');
-      const canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      canvas.getContext('2d').drawImage(img, 0, 0);
-      const a = document.createElement('a');
-      a.href = canvas.toDataURL(`image/${fmt}`, 0.9);
-      a.download = `decoded_image.${fmt}`;
-      a.click();
-    }
-    showToast(`✓ 已下載 .${fmt} 圖片`);
-  }
-
-  // ── Helpers ──────────────────────────────────────
-  function formatBytes(b) {
-    if (b < 1024) return b + ' B';
-    if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
-    return (b / 1048576).toFixed(2) + ' MB';
-  }
-
-  let toastTimer;
-  function showToast(msg, isError = false) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.className = 'toast' + (isError ? ' error' : '') + ' show';
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
-  }
+};
 </script>
 </body>
 </html>
