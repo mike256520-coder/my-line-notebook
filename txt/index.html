@@ -37,6 +37,26 @@ ANE0N-LZ7HA-9Y4IT-DBKA3-K7NIQ
 *
             </textarea>
 
+<script>
+  // 1. 取得今天的日期...//加入"#今天的日期 "
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0'); // 月份從 0 開始，所以要 +1
+  const dd = String(today.getDate()).padStart(2, '0');
+
+  // 2. 設定日期格式 (這裡設定為 YYYYMMDD，例如: 20260609)
+  // 如果你想要 YYYY-MM-DD，可以改成 `${yyyy}-${mm}-${dd}`
+  const dateString = `${yyyy}${mm}${dd}`; 
+
+  // 3. 取得 textarea 元素
+  const textarea = document.getElementById('post-input');
+
+  // 4. 將預設內容中的 "#未分類" 替換成 "#今天的日期 #未分類"
+  if (textarea) {
+    textarea.value = textarea.value.replace('#未分類', `#${dateString} #未分類`);
+  }
+</script>
+
             <!-- 圖片預覽區 -->
             <div id="image-preview-container"></div>
 
