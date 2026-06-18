@@ -17,8 +17,8 @@ ANE0N-LZ7HA-9Y4IT-DBKA3-K7NIQ
     <div class="container">
         <header>
             =txt記事本=..<strong>#未分類</strong> <strong>#dj</strong><strong>#金融</strong>#股市#座右銘<strong>#音樂</strong> 
-            #吉他#和弦#音階#歌曲#吉他譜#演奏#jazz#lick<strong>#醫健</strong>#心理 #旅遊#登山<strong>#動植物</strong>#鸚鵡<strong>#diy</strong>#繩結#水電 
-            <strong>#購物</strong> <strong>#pc</strong>#機車<strong>#歷史</strong>#宗教#搜奇#英文。<strong> &lt;a href=""&gt;&lt;/a&gt;</strong>
+            #吉他#和弦#音階#歌曲#吉他譜#彈奏#jazz#lick<strong>#醫健</strong>#心理 #旅遊#登山<strong>#動植物</strong>#鸚鵡<strong>#diy</strong>#繩結#水電
+            <strong>#購物</strong>#機車 <strong>#pc</strong><strong>#歷史</strong>#宗教#搜奇#英文。<strong> &lt;a href=""&gt;&lt;/a&gt;</strong>
             <div class="search-area">
                 <input type="text" id="search-input" placeholder="搜尋標簽...FB文字版(YT不適用)&#10; ">
                 <button id="search-btn">搜尋</button>
@@ -46,14 +46,17 @@ ANE0N-LZ7HA-9Y4IT-DBKA3-K7NIQ
 
   // 2. 設定日期格式 (這裡設定為 YYYYMMDD，例如: 20260609)
   // 如果你想要 YYYY-MM-DD，可以改成 `${yyyy}-${mm}-${dd}`
-  const dateString = `${yyyy}${mm}${dd}`; 
+  const dateString = `${yyyy}${mm}${dd}`;
+
+  // 2b. 年月格式 (例如: 202606)
+  const monthString = `${yyyy}${mm}`;
 
   // 3. 取得 textarea 元素
   const textarea = document.getElementById('post-input');
 
-  // 4. 將預設內容中的 "#未分類" 替換成 "#今天的日期 #未分類"
+  // 4. 將預設內容中的 "#未分類" 替換成 "#年月日 #年月 #未分類"
   if (textarea) {
-    textarea.value = textarea.value.replace('#未分類', `#${dateString} #未分類`);
+    textarea.value = textarea.value.replace('#未分類', `#${dateString} #${monthString} #未分類`);
   }
 </script>
 
