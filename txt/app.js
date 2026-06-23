@@ -22,11 +22,11 @@ const postList = document.getElementById('post-list');
 const PAGE_SIZE = 20;
 
 // ════════════════════════════════════════
-// ── Canvas 壓縮圖片 → Base64 ──
+// ── Canvas 壓縮圖片 → Base64 ──0.75改0.55
 // ════════════════════════════════════════
 function compressImageToBase64(file) {
     return new Promise((resolve, reject) => {
-        const MAX_SIDE = 800, QUALITY = 0.75;
+        const MAX_SIDE = 800, QUALITY = 0.55;
         const img = new Image();
         const url = URL.createObjectURL(file);
         img.onload = () => {
